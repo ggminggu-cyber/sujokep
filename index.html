@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fragmented Realities — Museum 3D</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,600;1,300&display=swap');
+
+  :root {
+    --black: #0a0a0a;
+    --white: #f0ede8;
+    --accent: #c8a96e;
+    --grey: #2a2a2a;
+    --midgrey: #555;
+    --lightgrey: #888;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--black);
+    color: var(--white);
+    font-family: 'Space Mono', monospace;
+    overflow: hidden;
+    height: 100vh;
+  }
+
+  /* ── INTRO SCREEN ── */
+  #intro {
+    position: fixed; inset: 0; z-index: 100;
+    background: var(--black);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: opacity 0.8s ease;
+  }
+  #intro.hidden { opacity: 0; pointer-events: none; }
+
+  .intro-eyebrow {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem; letter-spacing: 0.4em;
+    color: var(--accent); text-transform: uppercase;
+    margin-bottom: 2rem;
+  }
+  .intro-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(4rem, 12vw, 10rem);
+    line-height: 0.9; letter-spacing: 0.02em;
+    text-align: center; color: var(--white);
+  }
+  .intro-sub {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.1rem; font-style: italic;
+    color: var(--lightgrey); margin-top: 1.5rem;
+    letter-spacing: 0.05em;
+  }
+  .intro-cta {
+    margin-top: 4rem;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem; letter-spacing: 0.35em;
+    text-transform: uppercase; color: var(--accent);
+    border: 1px solid var(--accent);
+    padding: 0.9rem 2.5rem;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%,100% { opacity: 1; } 50% { opacity: 0.4; }
+  }
+  .intro-line {
+    width: 1px; height: 80px; background: var(--accent);
+    margin: 2.5rem 0;
+    animation: grow 1.2s ease-out forwards;
+  }
+  @keyframes grow {
+    from { height: 0; } to { height: 80px; }
+  }
+
+  /* ── CANVAS ── */
+  #canvas { position: fixed; inset: 0; }
+
+  /* ── TOP BAR ── */
+  #topbar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 20;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1.2rem 2rem;
+    background: linear-gradient(to bottom, rgba(10,10,10,0.95), transparent);
+    pointer-events: none;
+    opacity: 0; transition: opacity 0.6s 0.3s;
+  }
+  #topbar.visible { opacity: 1; pointer-events: all; }
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.4rem; letter-spacing: 0.12em; color: var(--white);
+  }
+  .logo span { color: var(--accent); }
+  .view-toggle {
+    display: flex; gap: 0.5rem;
+  }
+  .view-btn {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase;
+    background: transparent; border: 1px solid var(--midgrey);
+    color: var(--lightgrey); padding: 0.5rem 1.1rem;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .view-btn:hover, .view-btn.active {
+    border-color: var(--accent); color: var(--accent);
+    background: rgba(200,169,110,0.08);
+  }
+
+  /* ── BOTTOM LEGEND ── */
+  #legend {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
+    padding: 1.5rem 2rem;
+    background: linear-gradient(to top, rgba(10,10,10,0.97), transparent);
+    opacity: 0; transition: opacity 0.6s 0.5s;
+    pointer-events: none;
+  }
+  #legend.visible { opacity: 1; }
+  .legend-row { display: flex; gap: 2rem; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; }
+  .legend-zones { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+  .zone-pill {
+    display: flex; align-items: center; gap: 0.5rem;
+    font-size: 0.6rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--lightgrey);
+  }
+  .zone-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+  }
+  .legend-hint {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic; font-size: 0.85rem; color: var(--midgrey);
+  }
+
+  /* ── INFO PANEL ── */
+  #infopanel {
+    position: fixed; right: 2rem; top: 50%; transform: translateY(-50%);
+    z-index: 20; width: 260px;
+    background: rgba(10,10,10,0.92);
+    border: 1px solid var(--grey);
+    border-left: 3px solid var(--accent);
+    padding: 1.8rem 1.5rem;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.3s, transform 0.3s;
+    transform: translateY(-50%) translateX(20px);
+  }
+  #infopanel.visible {
+    opacity: 1; pointer-events: all;
+    transform: translateY(-50%) translateX(0);
+  }
+  .panel-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 3rem; color: var(--accent); line-height: 1;
+    margin-bottom: 0.3rem;
+  }
+  .panel-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.3rem; letter-spacing: 0.06em; color: var(--white);
+    margin-bottom: 0.8rem;
+  }
+  .panel-desc {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 0.95rem; line-height: 1.65; color: #aaa;
+    font-style: italic;
+  }
+  .panel-close {
+    position: absolute; top: 0.8rem; right: 0.9rem;
+    font-family: 'Space Mono', monospace; font-size: 0.7rem;
+    color: var(--midgrey); cursor: pointer; background: none; border: none;
+    color: var(--lightgrey);
+  }
+  .panel-close:hover { color: var(--accent); }
+
+  /* ── CONTROLS HINT ── */
+  #controls {
+    position: fixed; left: 2rem; bottom: 4.5rem; z-index: 20;
+    font-family: 'Space Mono', monospace; font-size: 0.55rem;
+    letter-spacing: 0.12em; color: var(--midgrey);
+    line-height: 2; opacity: 0; transition: opacity 0.6s 0.7s;
+    pointer-events: none;
+  }
+  #controls.visible { opacity: 1; }
+
+  /* ── LOADING ── */
+  #loader {
+    position: fixed; inset: 0; z-index: 200;
+    background: var(--black);
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 1rem;
+    transition: opacity 0.6s;
+  }
+  #loader.hidden { opacity: 0; pointer-events: none; }
+  .loader-bar {
+    width: 200px; height: 1px; background: var(--grey);
+    position: relative; overflow: hidden;
+  }
+  .loader-fill {
+    position: absolute; left: -100%; top: 0; bottom: 0;
+    width: 100%; background: var(--accent);
+    animation: loadfill 1.2s ease forwards;
+  }
+  @keyframes loadfill { from { left: -100%; } to { left: 0; } }
+  .loader-text {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem; letter-spacing: 0.3em; color: var(--lightgrey);
+  }
+</style>
+</head>
+<body>
+
+<!-- Loader -->
+<div id="loader">
+  <div class="loader-text">MEMUAT MUSEUM</div>
+  <div class="loader-bar"><div class="loader-fill"></div></div>
+</div>
+
+<!-- Intro -->
+<div id="intro">
+  <div class="intro-eyebrow">Pameran Seni Kontemporer · 2025</div>
+  <div class="intro-title">FRAGMENTED<br>REALITIES</div>
+  <div class="intro-sub">Sebuah eksplorasi fragmentasi ruang, bentuk, dan makna</div>
+  <div class="intro-line"></div>
+  <div class="intro-cta">Masuk ke Museum →</div>
+</div>
+
+<!-- Canvas -->
+<canvas id="canvas"></canvas>
+
+<!-- Top Bar -->
+<div id="topbar">
+  <div class="logo">FRAGMENTED <span>REALITIES</span></div>
+  <div class="view-toggle">
+    <button class="view-btn active" id="btnBird">BIRD'S EYE</button>
+    <button class="view-btn" id="btnWalk">WALK THROUGH</button>
+    <button class="view-btn" id="btnDiag">DIAGONAL</button>
+  </div>
+</div>
+
+<!-- Info Panel -->
+<div id="infopanel">
+  <button class="panel-close" id="closePanel">[ TUTUP ]</button>
+  <div class="panel-num" id="pNum">01</div>
+  <div class="panel-title" id="pTitle">—</div>
+  <div class="panel-desc" id="pDesc">—</div>
+</div>
+
+<!-- Legend -->
+<div id="legend">
+  <div class="legend-row">
+    <div class="legend-zones" id="legendZones"></div>
+    <div class="legend-hint">Klik zona untuk informasi · Scroll untuk zoom</div>
+  </div>
+</div>
+
+<!-- Controls -->
+<div id="controls" id="controls">
+  DRAG — PUTAR KAMERA<br>
+  SCROLL — ZOOM<br>
+  KLIK ZONA — INFO
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ─────────────────────────────────────────────
+//  MUSEUM DATA
+// ─────────────────────────────────────────────
+const ZONES = [
+  {
+    id: 1, num: '01', color: 0x8B7355,
+    title: 'PENGANTAR TEMA',
+    desc: 'Pengantar konsep Fragmented Realities melalui panel teks dan visual. Ruang pertama yang disambut pengunjung — dinding teks puitis dan panel visual fragmentasi.',
+    legendColor: '#8B7355'
+  },
+  {
+    id: 2, num: '02', color: 0x4a6741,
+    title: 'AREA KARYA 2D',
+    desc: 'Menampilkan karya lukisan, glitch art, kolase, dan fotografi dekonstruktif. Dinding penuh karya dua dimensi yang mempertanyakan persepsi realitas.',
+    legendColor: '#4a6741'
+  },
+  {
+    id: 3, num: '03', color: 0x3a5a7a,
+    title: 'AREA INSTALASI 3D',
+    desc: 'Instalasi dan objek 3D yang mengeksplorasi fragmentasi ruang dan bentuk. Pusat museum — objek besar menggantung dan berdiri di tengah ruangan.',
+    legendColor: '#3a5a7a'
+  },
+  {
+    id: 4, num: '04', color: 0x6b4a6b,
+    title: 'RUANG REFLEKSI',
+    desc: 'Ruang hening dengan soundscape ambient untuk refleksi. Pengunjung duduk dan mendengarkan komposisi suara yang mencerminkan tema fragmentasi.',
+    legendColor: '#6b4a6b'
+  },
+  {
+    id: 5, num: '05', color: 0x7a5a3a,
+    title: 'ARTIST STATEMENT CORNER',
+    desc: 'Area untuk membaca artist statement dalam bentuk puisi abstrak. Pojok intim dengan lampu baca dan teks-teks yang tercetak di kertas kaligrafi.',
+    legendColor: '#7a5a3a'
+  },
+  {
+    id: 6, num: '06', color: 0x4a4a6b,
+    title: 'APRESIASI & DISKUSI',
+    desc: 'Area duduk dan diskusi bersama seniman. Kursi-kursi melingkar, meja diskusi, dan papan tulis untuk sesi tanya jawab dan apresiasi.',
+    legendColor: '#4a4a6b'
+  }
+];
+
+const VIEWS = {
+  bird:  { x:  0, y: 28, z: 22, tx: 0, ty: 0, tz: 0 },
+  walk:  { x:  0, y:  4, z: 18, tx: 0, ty: 1, tz: 0 },
+  diag:  { x: 18, y: 16, z: 18, tx: 0, ty: 0, tz: 0 }
+};
+
+// ─────────────────────────────────────────────
+//  SCENE SETUP
+// ─────────────────────────────────────────────
+const canvas = document.getElementById('canvas');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.setClearColor(0x0a0a0a);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.9;
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.Fog(0x0a0a0a, 35, 70);
+
+const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 200);
+camera.position.set(0, 28, 22);
+camera.lookAt(0, 0, 0);
+
+// ─────────────────────────────────────────────
+//  HELPERS
+// ─────────────────────────────────────────────
+function box(w, h, d, color, x, y, z, rx=0, ry=0, rz=0, roughness=0.8, metalness=0.1) {
+  const geo = new THREE.BoxGeometry(w, h, d);
+  const mat = new THREE.MeshStandardMaterial({ color, roughness, metalness });
+  const m = new THREE.Mesh(geo, mat);
+  m.position.set(x, y, z);
+  m.rotation.set(rx, ry, rz);
+  m.castShadow = true; m.receiveShadow = true;
+  scene.add(m);
+  return m;
+}
+function cyl(r, h, color, x, y, z, seg=32, roughness=0.7) {
+  const geo = new THREE.CylinderGeometry(r, r, h, seg);
+  const mat = new THREE.MeshStandardMaterial({ color, roughness });
+  const m = new THREE.Mesh(geo, mat);
+  m.position.set(x, y, z);
+  m.castShadow = true; m.receiveShadow = true;
+  scene.add(m);
+  return m;
+}
+function sphere(r, color, x, y, z, roughness=0.6, metalness=0.2) {
+  const geo = new THREE.SphereGeometry(r, 32, 32);
+  const mat = new THREE.MeshStandardMaterial({ color, roughness, metalness });
+  const m = new THREE.Mesh(geo, mat);
+  m.position.set(x, y, z);
+  m.castShadow = true; m.receiveShadow = true;
+  scene.add(m);
+  return m;
+}
+
+// ─────────────────────────────────────────────
+//  LIGHTING
+// ─────────────────────────────────────────────
+const ambient = new THREE.AmbientLight(0x1a1510, 1.2);
+scene.add(ambient);
+
+const sun = new THREE.DirectionalLight(0xfff5e0, 1.8);
+sun.position.set(10, 25, 15);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.camera.near = 0.5;
+sun.shadow.camera.far = 80;
+sun.shadow.camera.left = -25;
+sun.shadow.camera.right = 25;
+sun.shadow.camera.top = 25;
+sun.shadow.camera.bottom = -25;
+scene.add(sun);
+
+// Accent spotlights per zone
+[
+  [0xa07840, -8, 12, -6],  // zone 1 — warm
+  [0x406040, 5, 12, -8],   // zone 2 — green
+  [0x204060, 0, 12, 1],    // zone 3 — blue
+  [0x503050, -8, 12, 4],   // zone 4 — purple
+  [0x705030, 8, 12, 4],    // zone 5 — gold
+  [0x303060, 0, 12, 9],    // zone 6 — indigo
+].forEach(([c, x, y, z]) => {
+  const s = new THREE.PointLight(c, 1.4, 18);
+  s.position.set(x, y, z);
+  scene.add(s);
+});
+
+// ─────────────────────────────────────────────
+//  FLOOR
+// ─────────────────────────────────────────────
+const floorGeo = new THREE.PlaneGeometry(30, 24);
+const floorMat = new THREE.MeshStandardMaterial({ color: 0x1a1814, roughness: 0.9 });
+const floor = new THREE.Mesh(floorGeo, floorMat);
+floor.rotation.x = -Math.PI / 2;
+floor.position.set(0, 0, 1);
+floor.receiveShadow = true;
+scene.add(floor);
+
+// Grid lines on floor
+const grid = new THREE.GridHelper(30, 30, 0x2a2620, 0x1e1c18);
+grid.position.set(0, 0.01, 1);
+scene.add(grid);
+
+// ─────────────────────────────────────────────
+//  WALLS (outer boundary — W=28, D=22)
+// ─────────────────────────────────────────────
+const wallH = 5, wallT = 0.3, wallC = 0x1e1c1a;
+// North wall (top)
+box(28, wallH, wallT, wallC,  0, wallH/2, -10);
+// South wall (bottom)
+box(28, wallH, wallT, wallC,  0, wallH/2,  12);
+// West wall
+box(wallT, wallH, 22, wallC, -14, wallH/2,  1);
+// East wall
+box(wallT, wallH, 22, wallC,  14, wallH/2,  1);
+
+// Inner partition — between zone 4 (left) and main hall
+box(wallT, wallH, 7, 0x252320, -6, wallH/2, 4.5); // vertical inner left
+box(9, wallH, wallT, 0x252320, -9.5, wallH/2, 1); // horizontal mid
+
+// Lower partition — separating zone 6 (bottom)
+box(28, wallH, wallT, 0x252320, 0, wallH/2, 7.5);
+
+// Ceiling
+const ceilGeo = new THREE.PlaneGeometry(28, 22);
+const ceilMat = new THREE.MeshStandardMaterial({ color: 0x111110, roughness: 1 });
+const ceil = new THREE.Mesh(ceilGeo, ceilMat);
+ceil.rotation.x = Math.PI / 2;
+ceil.position.set(0, wallH, 1);
+scene.add(ceil);
+
+// Ceiling recessed light fixtures (decorative)
+[[0,wallH-0.1,-4], [5,wallH-0.1,-4], [-5,wallH-0.1,-4],
+ [0,wallH-0.1, 2], [8,wallH-0.1, 0], [-8,wallH-0.1, 2]].forEach(([x,y,z]) => {
+  const f = new THREE.Mesh(
+    new THREE.CircleGeometry(0.3, 16),
+    new THREE.MeshStandardMaterial({ color: 0xfff8e7, emissive: 0xfff8e7, emissiveIntensity: 1 })
+  );
+  f.rotation.x = Math.PI / 2;
+  f.position.set(x, y, z);
+  scene.add(f);
+});
+
+// ─────────────────────────────────────────────
+//  ZONE FLOOR MARKERS (clickable)
+// ─────────────────────────────────────────────
+const zoneMarkers = [];
+
+const ZONE_FLOORS = [
+  // [x, z, w, d, zoneIndex]
+  [-10, -5.5,  7,  9, 0],  // Zone 1 — Pengantar Tema (top-left)
+  [ 4,  -6,   14,  8, 1],  // Zone 2 — Karya 2D (top-right)
+  [ 0,   1,   11,  6, 2],  // Zone 3 — Instalasi 3D (center)
+  [-10,  3.5,  5,  6, 3],  // Zone 4 — Ruang Refleksi (left)
+  [ 10,  2,    7,  9, 4],  // Zone 5 — Artist Statement (right)
+  [ 0,   9.8, 28,  4.2,5], // Zone 6 — Diskusi (bottom)
+];
+
+ZONE_FLOORS.forEach(([x, z, w, d, zi]) => {
+  const zd = ZONES[zi];
+  const geo = new THREE.PlaneGeometry(w, d);
+  const mat = new THREE.MeshStandardMaterial({
+    color: zd.color, roughness: 0.95, transparent: true, opacity: 0.18,
+  });
+  const m = new THREE.Mesh(geo, mat);
+  m.rotation.x = -Math.PI / 2;
+  m.position.set(x, 0.02, z);
+  m.userData = { zone: zd, floorIndex: zi };
+  scene.add(m);
+  zoneMarkers.push(m);
+
+  // Zone label indicator (thin glowing bar)
+  const bar = new THREE.Mesh(
+    new THREE.BoxGeometry(w, 0.05, 0.05),
+    new THREE.MeshStandardMaterial({ color: zd.color, emissive: zd.color, emissiveIntensity: 0.8 })
+  );
+  bar.position.set(x, 0.03, z - d/2 + 0.03);
+  scene.add(bar);
+});
+
+// ─────────────────────────────────────────────
+//  ZONE 1 — PENGANTAR TEMA (top-left)
+//  Large text panels on walls
+// ─────────────────────────────────────────────
+// Text panel boards on north wall
+[[-13, 2.5, -9.65], [-10, 2.5, -9.65], [-7, 2.5, -9.65]].forEach(([x,y,z], i) => {
+  box(2, 2.2, 0.08, [0x2a2520, 0x1e1a14, 0x3a3028][i], x, y, z);
+});
+// Vertical panels (like the black strips in 2D plan)
+[[-13.5, 2, -6], [-12.5, 2, -3], [-13.5, 2, 0]].forEach(([x,y,z]) => {
+  box(0.3, 3, 0.6, 0x1a1814, x, y, z, 0, 0.3, 0);
+});
+
+// ─────────────────────────────────────────────
+//  ZONE 2 — KARYA 2D (top-right area)
+//  Framed artworks on walls
+// ─────────────────────────────────────────────
+const artColors = [0x8b4513, 0x2f4f4f, 0x556b2f, 0x8b0000, 0x191970, 0x4b0082, 0x006400];
+// North wall artworks
+[[1,-9.65], [4,-9.65], [7,-9.65], [10,-9.65]].forEach(([x, z], i) => {
+  const w = 1.6 + Math.random()*0.8;
+  const h = 1.2 + Math.random()*1;
+  // Frame
+  box(w+0.15, h+0.15, 0.05, 0x1a1614, x, 2.5, z);
+  // Art surface
+  box(w, h, 0.08, artColors[i % artColors.length], x, 2.5, z - 0.02);
+});
+// East wall artworks
+[[13.65, -7], [13.65, -4], [13.65, -1]].forEach(([x, z], i) => {
+  const w = 1.4 + Math.random()*0.6;
+  const h = 1.0 + Math.random()*0.8;
+  box(0.05, h+0.15, w+0.15, 0x1a1614, x, 2.5, z);
+  box(0.08, h, w, artColors[(i+3) % artColors.length], x - 0.02, 2.5, z);
+});
+// Diagonal display easels
+[[9, 1, -8], [11, 1, -6], [7, 1, -6]].forEach(([x,y,z]) => {
+  box(0.08, 2, 0.08, 0x3a3028, x, y, z); // easel leg
+  box(1.2, 1.0, 0.06, artColors[Math.floor(Math.random()*7)], x, 2.4, z - 0.1);
+});
+
+// ─────────────────────────────────────────────
+//  ZONE 3 — INSTALASI 3D (center)
+//  Large sculptural elements
+// ─────────────────────────────────────────────
+// Central large sphere (the circle in 2D plan)
+const centerSphere = sphere(2.2, 0x2a3d52, 0, 2.2, 1, 0.5, 0.3);
+// Wireframe overlay on sphere
+const wireGeo = new THREE.SphereGeometry(2.25, 12, 8);
+const wireMat = new THREE.MeshBasicMaterial({ color: 0x4a7aaa, wireframe: true });
+const wire = new THREE.Mesh(wireGeo, wireMat);
+wire.position.set(0, 2.2, 1);
+scene.add(wire);
+
+// Fragmented shards around sphere
+const shardPositions = [
+  [2.8, 0.5, 0], [-2.5, 0.8, 2], [1.5, 0.3, -1.5],
+  [-1.8, 1.2, -0.8], [0.5, 0.2, 2.8], [3, 1.5, 1.5]
+];
+shardPositions.forEach(([x,y,z], i) => {
+  const geo = new THREE.OctahedronGeometry(0.3 + Math.random()*0.4, 0);
+  const mat = new THREE.MeshStandardMaterial({
+    color: [0x4a6890, 0x6a8aaa, 0x2a5070, 0x8aacca][i%4],
+    roughness: 0.4, metalness: 0.5
+  });
+  const m = new THREE.Mesh(geo, mat);
+  m.position.set(x, y + 0.3, z);
+  m.rotation.set(Math.random(), Math.random(), Math.random());
+  m.castShadow = true;
+  scene.add(m);
+});
+
+// Hanging cables / wires from ceiling for suspended elements
+[[0, wallH, -1], [1.5, wallH, 0.5], [-1.5, wallH, 1.5]].forEach(([x,y,z]) => {
+  const cableGeo = new THREE.CylinderGeometry(0.02, 0.02, 2.5, 6);
+  const cableMat = new THREE.MeshStandardMaterial({ color: 0x444444 });
+  const cable = new THREE.Mesh(cableGeo, cableMat);
+  cable.position.set(x, y - 1.25, z);
+  scene.add(cable);
+  // Hanging shard
+  const geo2 = new THREE.OctahedronGeometry(0.25, 0);
+  const mat2 = new THREE.MeshStandardMaterial({ color: 0x6a90b0, metalness: 0.7, roughness: 0.2 });
+  const h2 = new THREE.Mesh(geo2, mat2);
+  h2.position.set(x, y - 2.8, z);
+  h2.castShadow = true;
+  scene.add(h2);
+});
+
+// ─────────────────────────────────────────────
+//  ZONE 4 — RUANG REFLEKSI (left pocket)
+//  Minimal — bench, atmosphere
+// ─────────────────────────────────────────────
+// Bench / seat platform
+box(3, 0.3, 0.9, 0x2a2420, -9.5, 0.15, 5);
+// Cushions
+[[-10.5, 0.32, 5], [-9.5, 0.32, 5], [-8.5, 0.32, 5]].forEach(([x,y,z]) => {
+  box(0.8, 0.1, 0.7, 0x3a2a3a, x, y, z);
+});
+// Ambient speaker pillar
+cyl(0.2, 1, 0x1a1a1a, -11.5, 0.5, 3.5);
+cyl(0.25, 0.08, 0x333333, -11.5, 1.04, 3.5);
+
+// Sound wave art on wall — abstract lines
+for (let i = 0; i < 8; i++) {
+  const h = 0.4 + Math.sin(i * 0.8) * 0.6 + 0.6;
+  box(0.06, h, 0.04, 0x5a3a6a, -13.5 + i * 0.45, h/2 + 0.5, -9.62);
+}
+
+// ─────────────────────────────────────────────
+//  ZONE 5 — ARTIST STATEMENT CORNER (right)
+//  Reading nook, poetry panels
+// ─────────────────────────────────────────────
+// Reading chair (simplified)
+box(1, 0.4, 0.9, 0x3a2a20, 11, 0.2, -1);  // seat
+box(1, 1.2, 0.2, 0x3a2a20, 11, 0.8, -1.5); // back
+
+// Small side table
+box(0.5, 0.5, 0.5, 0x2a2218, 12.2, 0.25, -1);
+// Lamp on table
+cyl(0.05, 0.8, 0x4a3a28, 12.2, 0.9, -1);
+// Lamp shade (cone)
+const lampGeo = new THREE.ConeGeometry(0.25, 0.35, 8);
+const lampMat = new THREE.MeshStandardMaterial({ color: 0xd4a96a, emissive: 0xd4a96a, emissiveIntensity: 0.4 });
+const lamp = new THREE.Mesh(lampGeo, lampMat);
+lamp.position.set(12.2, 1.46, -1);
+lamp.rotation.x = Math.PI;
+scene.add(lamp);
+
+// Text/poetry panels on east wall
+[[13.65, 2.5, 1], [13.65, 2.5, 3.5], [13.65, 2.5, 5.5]].forEach(([x,y,z]) => {
+  box(0.05, 1.8, 1.2, 0x1a1814, x, y, z);
+  // Lines suggesting text
+  for (let l = 0; l < 5; l++) {
+    box(0.04, 0.04, 0.7 + Math.random()*0.3, 0x3a3028, x - 0.02, y - 0.5 + l*0.22, z);
+  }
+});
+
+// Diagonal display shelves from the 2D plan
+box(0.08, 0.08, 2.5, 0x4a3a28, 10.5, 3, -7, 0, 0, 0.4); // diagonal shard/rail
+
+// ─────────────────────────────────────────────
+//  ZONE 6 — APRESIASI & DISKUSI (bottom)
+//  Seating circle, discussion table
+// ─────────────────────────────────────────────
+// Center discussion table
+cyl(1.0, 0.08, 0x2a2420, 0, 0.45, 9.8);
+// Table leg
+cyl(0.08, 0.45, 0x1a1814, 0, 0.22, 9.8);
+
+// Chairs around table (6 chairs)
+for (let i = 0; i < 6; i++) {
+  const angle = (i / 6) * Math.PI * 2;
+  const r = 1.9;
+  const cx = Math.sin(angle) * r;
+  const cz = 9.8 + Math.cos(angle) * r;
+  // Seat
+  box(0.7, 0.12, 0.7, 0x2a2830, cx, 0.45, cz);
+  // Chair leg (simple)
+  box(0.06, 0.45, 0.06, 0x1a1818, cx, 0.22, cz);
+  // Chair back
+  box(0.7, 0.7, 0.08, 0x2a2830, cx, 0.85, cz - Math.cos(angle)*0.35);
+}
+
+// Side benches (round blobs in 2D plan)
+[[-3.5, 9.2], [-1.2, 9.2], [1.2, 9.2]].forEach(([x,z]) => {
+  cyl(0.5, 0.4, 0x252328, x, 0.2, z);
+});
+[[-5.5, 9.5], [5.5, 9.5]].forEach(([x,z]) => {
+  box(1.2, 0.4, 0.7, 0x222230, x, 0.2, z);
+});
+
+// Discussion whiteboard
+box(0.06, 1.8, 3, 0x1e1e24, 0, 1.2, 11.7);
+// Whiteboard surface
+box(0.03, 1.6, 2.6, 0xf0ede8, 0, 1.2, 11.7);
+
+// Display bar at top of zone 6 (from 2D plan)
+box(6, 0.1, 0.3, 0x3a3a3a, 0, 0.08, 7.7);
+
+// ─────────────────────────────────────────────
+//  ENTRANCE MARKERS
+// ─────────────────────────────────────────────
+// Entrance arch — left side
+box(0.2, 3, 0.3, 0x3a3028, -14, 1.5, 0.5);
+box(0.2, 3, 0.3, 0x3a3028, -14, 1.5, -1.5);
+box(0.2, 0.2, 2.3, 0x3a3028, -14, 3.1, -0.5);
+
+// Exit arch — bottom
+box(2, 0.2, 0.3, 0x3a3028, -10, 3.2, 12);
+box(0.3, 3, 0.3, 0x3a3028, -11.3, 1.5, 12);
+box(0.3, 3, 0.3, 0x3a3028, -8.7, 1.5, 12);
+
+// Entrance floor indicator
+const entranceGeo = new THREE.PlaneGeometry(2.2, 0.5);
+const entranceMat = new THREE.MeshStandardMaterial({ color: 0xc8a96e, emissive: 0xc8a96e, emissiveIntensity: 0.3 });
+const entranceMesh = new THREE.Mesh(entranceGeo, entranceMat);
+entranceMesh.rotation.x = -Math.PI / 2;
+entranceMesh.position.set(-14, 0.02, -0.5);
+scene.add(entranceMesh);
+
+// ─────────────────────────────────────────────
+//  GLOBAL DECORATIVE ELEMENTS
+// ─────────────────────────────────────────────
+// Corner decorative pillars (inner)
+[[-6, 2.5, -9.65], [-6, 2.5, 1]].forEach(([x,y,z]) => {
+  cyl(0.15, wallH, 0x252320, x, y, z, 6);
+});
+
+// Floating fragmented geometry (ceiling art)
+[[3, 4.5, -3], [-4, 4.3, -5], [6, 4.6, -1]].forEach(([x,y,z], i) => {
+  const geo = new THREE.TetrahedronGeometry(0.4, 0);
+  const mat = new THREE.MeshStandardMaterial({ color: [0x4a6890, 0x8a6040, 0x6a4880][i], metalness: 0.6, roughness: 0.3 });
+  const m = new THREE.Mesh(geo, mat);
+  m.position.set(x, y, z);
+  m.rotation.set(Math.random(), Math.random(), Math.random());
+  scene.add(m);
+});
+
+// ─────────────────────────────────────────────
+//  RAYCASTER / CLICK INTERACTION
+// ─────────────────────────────────────────────
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+let selectedZone = null;
+
+canvas.addEventListener('click', (e) => {
+  mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+  const hits = raycaster.intersectObjects(zoneMarkers);
+  if (hits.length) {
+    const zd = hits[0].object.userData.zone;
+    showPanel(zd);
+  }
+});
+
+function showPanel(zd) {
+  document.getElementById('pNum').textContent = zd.num;
+  document.getElementById('pTitle').textContent = zd.title;
+  document.getElementById('pDesc').textContent = zd.desc;
+  document.getElementById('infopanel').classList.add('visible');
+}
+document.getElementById('closePanel').addEventListener('click', () => {
+  document.getElementById('infopanel').classList.remove('visible');
+});
+
+// ─────────────────────────────────────────────
+//  LEGEND
+// ─────────────────────────────────────────────
+const legendZones = document.getElementById('legendZones');
+ZONES.forEach(z => {
+  const el = document.createElement('div');
+  el.className = 'zone-pill';
+  el.innerHTML = `<div class="zone-dot" style="background:${z.legendColor}"></div>${z.num} ${z.title}`;
+  el.style.cursor = 'pointer';
+  el.addEventListener('click', () => showPanel(z));
+  legendZones.appendChild(el);
+});
+
+// ─────────────────────────────────────────────
+//  ORBIT CONTROLS (manual)
+// ─────────────────────────────────────────────
+let isDragging = false, prevMouse = { x: 0, y: 0 };
+let sphericalTheta = 0.1, sphericalPhi = 0.8, sphericalR = 36;
+let targetTheta = 0.1, targetPhi = 0.8, targetR = 36;
+let targetLookX = 0, targetLookY = 0, targetLookZ = 0;
+let currentLookX = 0, currentLookY = 0, currentLookZ = 0;
+
+canvas.addEventListener('mousedown', (e) => { isDragging = true; prevMouse = { x: e.clientX, y: e.clientY }; });
+canvas.addEventListener('mouseup', () => { isDragging = false; });
+canvas.addEventListener('mousemove', (e) => {
+  if (!isDragging) return;
+  const dx = e.clientX - prevMouse.x;
+  const dy = e.clientY - prevMouse.y;
+  targetTheta -= dx * 0.008;
+  targetPhi = Math.max(0.15, Math.min(1.4, targetPhi + dy * 0.008));
+  prevMouse = { x: e.clientX, y: e.clientY };
+});
+canvas.addEventListener('wheel', (e) => {
+  targetR = Math.max(8, Math.min(55, targetR + e.deltaY * 0.05));
+});
+
+// Touch
+let prevTouch = null;
+canvas.addEventListener('touchstart', (e) => { prevTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY }; });
+canvas.addEventListener('touchmove', (e) => {
+  if (!prevTouch) return;
+  const dx = e.touches[0].clientX - prevTouch.x;
+  const dy = e.touches[0].clientY - prevTouch.y;
+  targetTheta -= dx * 0.01;
+  targetPhi = Math.max(0.15, Math.min(1.4, targetPhi + dy * 0.01));
+  prevTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+});
+
+function setView(v) {
+  const pos = VIEWS[v];
+  // Convert to spherical
+  const dx = pos.x - pos.tx, dy = pos.y - pos.ty, dz = pos.z - pos.tz;
+  targetR = Math.sqrt(dx*dx+dy*dy+dz*dz);
+  targetPhi = Math.acos(dy / targetR);
+  targetTheta = Math.atan2(dx, dz);
+  targetLookX = pos.tx; targetLookY = pos.ty; targetLookZ = pos.tz;
+}
+
+document.getElementById('btnBird').addEventListener('click', () => {
+  setView('bird');
+  document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('btnBird').classList.add('active');
+});
+document.getElementById('btnWalk').addEventListener('click', () => {
+  setView('walk');
+  document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('btnWalk').classList.add('active');
+});
+document.getElementById('btnDiag').addEventListener('click', () => {
+  setView('diag');
+  document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('btnDiag').classList.add('active');
+});
+
+// ─────────────────────────────────────────────
+//  ANIMATION
+// ─────────────────────────────────────────────
+let t = 0;
+function animate() {
+  requestAnimationFrame(animate);
+  t += 0.01;
+
+  // Lerp spherical
+  sphericalTheta += (targetTheta - sphericalTheta) * 0.07;
+  sphericalPhi   += (targetPhi   - sphericalPhi)   * 0.07;
+  sphericalR     += (targetR     - sphericalR)     * 0.07;
+  currentLookX   += (targetLookX - currentLookX)   * 0.07;
+  currentLookY   += (targetLookY - currentLookY)   * 0.07;
+  currentLookZ   += (targetLookZ - currentLookZ)   * 0.07;
+
+  camera.position.set(
+    currentLookX + sphericalR * Math.sin(sphericalPhi) * Math.sin(sphericalTheta),
+    currentLookY + sphericalR * Math.cos(sphericalPhi),
+    currentLookZ + sphericalR * Math.sin(sphericalPhi) * Math.cos(sphericalTheta)
+  );
+  camera.lookAt(currentLookX, currentLookY, currentLookZ);
+
+  // Animate center sphere slow rotation
+  wire.rotation.y = t * 0.15;
+  wire.rotation.x = Math.sin(t * 0.08) * 0.15;
+  centerSphere.position.y = 2.2 + Math.sin(t * 0.5) * 0.12;
+  wire.position.y = 2.2 + Math.sin(t * 0.5) * 0.12;
+
+  renderer.render(scene, camera);
+}
+animate();
+
+// ─────────────────────────────────────────────
+//  RESIZE
+// ─────────────────────────────────────────────
+window.addEventListener('resize', () => {
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+});
+
+// ─────────────────────────────────────────────
+//  INTRO FLOW
+// ─────────────────────────────────────────────
+setTimeout(() => {
+  document.getElementById('loader').classList.add('hidden');
+}, 1400);
+
+document.getElementById('intro').addEventListener('click', () => {
+  document.getElementById('intro').classList.add('hidden');
+  document.getElementById('topbar').classList.add('visible');
+  document.getElementById('legend').classList.add('visible');
+  document.getElementById('controls').classList.add('visible');
+  // Cinematic fly-in
+  targetTheta = 0.3; targetPhi = 0.55; targetR = 36;
+});
+</script>
+</body>
+</html>
