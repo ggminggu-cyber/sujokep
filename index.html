@@ -5,863 +5,1228 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Fragmented Realities — Museum 3D</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,600;1,300&display=swap');
-
-  :root {
-    --black: #0a0a0a;
-    --white: #f0ede8;
-    --accent: #c8a96e;
-    --grey: #2a2a2a;
-    --midgrey: #555;
-    --lightgrey: #888;
-  }
-
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-
-  body {
-    background: var(--black);
-    color: var(--white);
-    font-family: 'Space Mono', monospace;
-    overflow: hidden;
-    height: 100vh;
-  }
-
-  /* ── INTRO SCREEN ── */
-  #intro {
-    position: fixed; inset: 0; z-index: 100;
-    background: var(--black);
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    cursor: pointer;
-    transition: opacity 0.8s ease;
-  }
-  #intro.hidden { opacity: 0; pointer-events: none; }
-
-  .intro-eyebrow {
-    font-family: 'Space Mono', monospace;
-    font-size: 0.65rem; letter-spacing: 0.4em;
-    color: var(--accent); text-transform: uppercase;
-    margin-bottom: 2rem;
-  }
-  .intro-title {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: clamp(4rem, 12vw, 10rem);
-    line-height: 0.9; letter-spacing: 0.02em;
-    text-align: center; color: var(--white);
-  }
-  .intro-sub {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 1.1rem; font-style: italic;
-    color: var(--lightgrey); margin-top: 1.5rem;
-    letter-spacing: 0.05em;
-  }
-  .intro-cta {
-    margin-top: 4rem;
-    font-family: 'Space Mono', monospace;
-    font-size: 0.65rem; letter-spacing: 0.35em;
-    text-transform: uppercase; color: var(--accent);
-    border: 1px solid var(--accent);
-    padding: 0.9rem 2.5rem;
-    animation: pulse 2s ease-in-out infinite;
-  }
-  @keyframes pulse {
-    0%,100% { opacity: 1; } 50% { opacity: 0.4; }
-  }
-  .intro-line {
-    width: 1px; height: 80px; background: var(--accent);
-    margin: 2.5rem 0;
-    animation: grow 1.2s ease-out forwards;
-  }
-  @keyframes grow {
-    from { height: 0; } to { height: 80px; }
-  }
-
-  /* ── CANVAS ── */
-  #canvas { position: fixed; inset: 0; }
-
-  /* ── TOP BAR ── */
-  #topbar {
-    position: fixed; top: 0; left: 0; right: 0; z-index: 20;
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 1.2rem 2rem;
-    background: linear-gradient(to bottom, rgba(10,10,10,0.95), transparent);
-    pointer-events: none;
-    opacity: 0; transition: opacity 0.6s 0.3s;
-  }
-  #topbar.visible { opacity: 1; pointer-events: all; }
-  .logo {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 1.4rem; letter-spacing: 0.12em; color: var(--white);
-  }
-  .logo span { color: var(--accent); }
-  .view-toggle {
-    display: flex; gap: 0.5rem;
-  }
-  .view-btn {
-    font-family: 'Space Mono', monospace;
-    font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase;
-    background: transparent; border: 1px solid var(--midgrey);
-    color: var(--lightgrey); padding: 0.5rem 1.1rem;
-    cursor: pointer; transition: all 0.2s;
-  }
-  .view-btn:hover, .view-btn.active {
-    border-color: var(--accent); color: var(--accent);
-    background: rgba(200,169,110,0.08);
-  }
-
-  /* ── BOTTOM LEGEND ── */
-  #legend {
-    position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
-    padding: 1.5rem 2rem;
-    background: linear-gradient(to top, rgba(10,10,10,0.97), transparent);
-    opacity: 0; transition: opacity 0.6s 0.5s;
-    pointer-events: none;
-  }
-  #legend.visible { opacity: 1; }
-  .legend-row { display: flex; gap: 2rem; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; }
-  .legend-zones { display: flex; gap: 1.5rem; flex-wrap: wrap; }
-  .zone-pill {
-    display: flex; align-items: center; gap: 0.5rem;
-    font-size: 0.6rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--lightgrey);
-  }
-  .zone-dot {
-    width: 8px; height: 8px; border-radius: 50%;
-  }
-  .legend-hint {
-    font-family: 'Cormorant Garamond', serif;
-    font-style: italic; font-size: 0.85rem; color: var(--midgrey);
-  }
-
-  /* ── INFO PANEL ── */
-  #infopanel {
-    position: fixed; right: 2rem; top: 50%; transform: translateY(-50%);
-    z-index: 20; width: 260px;
-    background: rgba(10,10,10,0.92);
-    border: 1px solid var(--grey);
-    border-left: 3px solid var(--accent);
-    padding: 1.8rem 1.5rem;
-    opacity: 0; pointer-events: none;
-    transition: opacity 0.3s, transform 0.3s;
-    transform: translateY(-50%) translateX(20px);
-  }
-  #infopanel.visible {
-    opacity: 1; pointer-events: all;
-    transform: translateY(-50%) translateX(0);
-  }
-  .panel-num {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 3rem; color: var(--accent); line-height: 1;
-    margin-bottom: 0.3rem;
-  }
-  .panel-title {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 1.3rem; letter-spacing: 0.06em; color: var(--white);
-    margin-bottom: 0.8rem;
-  }
-  .panel-desc {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 0.95rem; line-height: 1.65; color: #aaa;
-    font-style: italic;
-  }
-  .panel-close {
-    position: absolute; top: 0.8rem; right: 0.9rem;
-    font-family: 'Space Mono', monospace; font-size: 0.7rem;
-    color: var(--midgrey); cursor: pointer; background: none; border: none;
-    color: var(--lightgrey);
-  }
-  .panel-close:hover { color: var(--accent); }
-
-  /* ── CONTROLS HINT ── */
-  #controls {
-    position: fixed; left: 2rem; bottom: 4.5rem; z-index: 20;
-    font-family: 'Space Mono', monospace; font-size: 0.55rem;
-    letter-spacing: 0.12em; color: var(--midgrey);
-    line-height: 2; opacity: 0; transition: opacity 0.6s 0.7s;
-    pointer-events: none;
-  }
-  #controls.visible { opacity: 1; }
-
-  /* ── LOADING ── */
-  #loader {
-    position: fixed; inset: 0; z-index: 200;
-    background: var(--black);
-    display: flex; align-items: center; justify-content: center;
-    flex-direction: column; gap: 1rem;
-    transition: opacity 0.6s;
-  }
-  #loader.hidden { opacity: 0; pointer-events: none; }
-  .loader-bar {
-    width: 200px; height: 1px; background: var(--grey);
-    position: relative; overflow: hidden;
-  }
-  .loader-fill {
-    position: absolute; left: -100%; top: 0; bottom: 0;
-    width: 100%; background: var(--accent);
-    animation: loadfill 1.2s ease forwards;
-  }
-  @keyframes loadfill { from { left: -100%; } to { left: 0; } }
-  .loader-text {
-    font-family: 'Space Mono', monospace;
-    font-size: 0.6rem; letter-spacing: 0.3em; color: var(--lightgrey);
-  }
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#0a0a0a;color:#f0ebe0;font-family:'Space Mono',monospace;overflow:hidden;height:100vh;width:100vw}
+  #canvas-container{position:fixed;inset:0;z-index:0}
+  canvas{display:block;width:100%!important;height:100%!important}
+ 
+  /* HUD */
+  #hud{position:fixed;inset:0;pointer-events:none;z-index:10}
+  #title-panel{position:absolute;top:24px;left:24px;pointer-events:none}
+  #title-panel h1{font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:4px;color:#f0ebe0;line-height:1;text-shadow:0 0 40px rgba(180,140,80,0.5)}
+  #title-panel p{font-size:9px;letter-spacing:3px;color:#8a7a60;margin-top:4px;text-transform:uppercase}
+ 
+  /* Mode Toggle */
+  #mode-toggle{position:absolute;top:24px;right:24px;pointer-events:all;display:flex;gap:8px}
+  .mode-btn{background:rgba(10,10,10,0.85);border:1px solid rgba(180,140,80,0.4);color:#b48c50;padding:8px 16px;font-family:'Space Mono',monospace;font-size:10px;letter-spacing:2px;cursor:pointer;transition:all 0.2s;text-transform:uppercase}
+  .mode-btn.active,.mode-btn:hover{background:rgba(180,140,80,0.15);border-color:#b48c50;color:#f0ebe0}
+ 
+  /* Controls Info */
+  #controls-info{position:absolute;bottom:24px;left:24px;pointer-events:none;background:rgba(10,10,10,0.8);border:1px solid rgba(180,140,80,0.2);padding:14px 18px}
+  #controls-info h3{font-size:9px;letter-spacing:3px;color:#b48c50;margin-bottom:10px;text-transform:uppercase}
+  #controls-info p{font-size:9px;letter-spacing:1px;color:#6a5a40;line-height:2;text-transform:uppercase}
+  #controls-info span{color:#b48c50}
+ 
+  /* Room Info */
+  #room-info{position:absolute;bottom:24px;right:24px;max-width:280px;background:rgba(10,10,10,0.9);border:1px solid rgba(180,140,80,0.3);border-left:3px solid #b48c50;padding:18px;transform:translateX(120%);transition:transform 0.4s cubic-bezier(0.16,1,0.3,1)}
+  #room-info.visible{transform:translateX(0)}
+  #room-info .room-num{font-size:9px;letter-spacing:3px;color:#b48c50;margin-bottom:6px}
+  #room-info h2{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:3px;color:#f0ebe0;margin-bottom:10px;line-height:1.1}
+  #room-info p{font-size:10px;letter-spacing:1px;color:#8a7a60;line-height:1.8;text-transform:uppercase}
+ 
+  /* Minimap */
+  #minimap{position:absolute;top:80px;right:24px;width:160px;height:160px;background:rgba(10,10,10,0.85);border:1px solid rgba(180,140,80,0.3);pointer-events:none;overflow:hidden}
+  #minimap canvas{width:100%!important;height:100%!important}
+  #minimap-label{position:absolute;bottom:4px;left:50%;transform:translateX(-50%);font-size:8px;letter-spacing:2px;color:#8a7a60;text-transform:uppercase}
+ 
+  /* Loading */
+  #loading{position:fixed;inset:0;background:#0a0a0a;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity 0.8s}
+  #loading h1{font-family:'Bebas Neue',sans-serif;font-size:64px;letter-spacing:8px;color:#f0ebe0;text-align:center}
+  #loading p{font-size:10px;letter-spacing:4px;color:#b48c50;margin-top:8px;text-transform:uppercase;text-align:center}
+  #loading-bar-wrap{width:300px;height:2px;background:rgba(180,140,80,0.2);margin-top:32px}
+  #loading-bar{height:100%;background:#b48c50;width:0%;transition:width 0.3s}
+  #loading-status{font-size:9px;letter-spacing:2px;color:#6a5a40;margin-top:8px;text-transform:uppercase}
+ 
+  /* Crosshair */
+  #crosshair{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:16px;height:16px;pointer-events:none;z-index:20;display:none}
+  #crosshair::before,#crosshair::after{content:'';position:absolute;background:#f0ebe0;opacity:0.6}
+  #crosshair::before{width:1px;height:100%;left:50%;transform:translateX(-50%)}
+  #crosshair::after{width:100%;height:1px;top:50%;transform:translateY(-50%)}
+ 
+  #fps-lock-msg{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(10,10,10,0.95);border:1px solid #b48c50;padding:24px 32px;text-align:center;z-index:50;display:none;pointer-events:none}
+  #fps-lock-msg h3{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:4px;color:#f0ebe0;margin-bottom:8px}
+  #fps-lock-msg p{font-size:10px;letter-spacing:2px;color:#8a7a60;text-transform:uppercase}
 </style>
 </head>
 <body>
-
-<!-- Loader -->
-<div id="loader">
-  <div class="loader-text">MEMUAT MUSEUM</div>
-  <div class="loader-bar"><div class="loader-fill"></div></div>
+<div id="loading">
+  <h1>FRAGMENTED<br>REALITIES</h1>
+  <p>Museum Seni Kontemporer — 3D Interactive</p>
+  <div id="loading-bar-wrap"><div id="loading-bar"></div></div>
+  <div id="loading-status">Membangun museum...</div>
 </div>
-
-<!-- Intro -->
-<div id="intro">
-  <div class="intro-eyebrow">Pameran Seni Kontemporer · 2025</div>
-  <div class="intro-title">FRAGMENTED<br>REALITIES</div>
-  <div class="intro-sub">Sebuah eksplorasi fragmentasi ruang, bentuk, dan makna</div>
-  <div class="intro-line"></div>
-  <div class="intro-cta">Masuk ke Museum →</div>
+ 
+<div id="canvas-container"></div>
+<div id="crosshair"></div>
+ 
+<div id="fps-lock-msg">
+  <h3>KLIK UNTUK EKSPLORASI</h3>
+  <p>Gerak mouse untuk melihat sekeliling<br>ESC untuk keluar</p>
 </div>
-
-<!-- Canvas -->
-<canvas id="canvas"></canvas>
-
-<!-- Top Bar -->
-<div id="topbar">
-  <div class="logo">FRAGMENTED <span>REALITIES</span></div>
-  <div class="view-toggle">
-    <button class="view-btn active" id="btnBird">BIRD'S EYE</button>
-    <button class="view-btn" id="btnWalk">WALK THROUGH</button>
-    <button class="view-btn" id="btnDiag">DIAGONAL</button>
+ 
+<div id="hud">
+  <div id="title-panel">
+    <h1>FRAGMENTED<br>REALITIES</h1>
+    <p>Museum Seni Kontemporer</p>
+  </div>
+  <div id="mode-toggle">
+    <button class="mode-btn active" id="btn-explore" onclick="setMode('explore')">🚶 Jelajahi</button>
+    <button class="mode-btn" id="btn-orbit" onclick="setMode('orbit')">🔄 Orbit 3D</button>
+    <button class="mode-btn" id="btn-overview" onclick="setMode('overview')">📐 Overview</button>
+  </div>
+  <div id="minimap">
+    <canvas id="minimap-canvas" width="160" height="160"></canvas>
+    <span id="minimap-label">Denah Museum</span>
+  </div>
+  <div id="controls-info">
+    <h3>Kontrol</h3>
+    <p id="control-text">
+      <span>Klik</span> = Lock & Jelajahi<br>
+      <span>WASD / ↑↓←→</span> = Bergerak<br>
+      <span>Mouse</span> = Lihat sekeliling<br>
+      <span>Scroll</span> = Zoom<br>
+      <span>ESC</span> = Lepas kursor
+    </p>
+  </div>
+  <div id="room-info">
+    <div class="room-num" id="room-num">Area 1</div>
+    <h2 id="room-title">PENGANTAR TEMA</h2>
+    <p id="room-desc">Pengantar konsep Fragmented Realities melalui panel teks dan visual</p>
   </div>
 </div>
-
-<!-- Info Panel -->
-<div id="infopanel">
-  <button class="panel-close" id="closePanel">[ TUTUP ]</button>
-  <div class="panel-num" id="pNum">01</div>
-  <div class="panel-title" id="pTitle">—</div>
-  <div class="panel-desc" id="pDesc">—</div>
-</div>
-
-<!-- Legend -->
-<div id="legend">
-  <div class="legend-row">
-    <div class="legend-zones" id="legendZones"></div>
-    <div class="legend-hint">Klik zona untuk informasi · Scroll untuk zoom</div>
-  </div>
-</div>
-
-<!-- Controls -->
-<div id="controls" id="controls">
-  DRAG — PUTAR KAMERA<br>
-  SCROLL — ZOOM<br>
-  KLIK ZONA — INFO
-</div>
-
+ 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
-// ─────────────────────────────────────────────
-//  MUSEUM DATA
-// ─────────────────────────────────────────────
-const ZONES = [
-  {
-    id: 1, num: '01', color: 0x8B7355,
-    title: 'PENGANTAR TEMA',
-    desc: 'Pengantar konsep Fragmented Realities melalui panel teks dan visual. Ruang pertama yang disambut pengunjung — dinding teks puitis dan panel visual fragmentasi.',
-    legendColor: '#8B7355'
-  },
-  {
-    id: 2, num: '02', color: 0x4a6741,
-    title: 'AREA KARYA 2D',
-    desc: 'Menampilkan karya lukisan, glitch art, kolase, dan fotografi dekonstruktif. Dinding penuh karya dua dimensi yang mempertanyakan persepsi realitas.',
-    legendColor: '#4a6741'
-  },
-  {
-    id: 3, num: '03', color: 0x3a5a7a,
-    title: 'AREA INSTALASI 3D',
-    desc: 'Instalasi dan objek 3D yang mengeksplorasi fragmentasi ruang dan bentuk. Pusat museum — objek besar menggantung dan berdiri di tengah ruangan.',
-    legendColor: '#3a5a7a'
-  },
-  {
-    id: 4, num: '04', color: 0x6b4a6b,
-    title: 'RUANG REFLEKSI',
-    desc: 'Ruang hening dengan soundscape ambient untuk refleksi. Pengunjung duduk dan mendengarkan komposisi suara yang mencerminkan tema fragmentasi.',
-    legendColor: '#6b4a6b'
-  },
-  {
-    id: 5, num: '05', color: 0x7a5a3a,
-    title: 'ARTIST STATEMENT CORNER',
-    desc: 'Area untuk membaca artist statement dalam bentuk puisi abstrak. Pojok intim dengan lampu baca dan teks-teks yang tercetak di kertas kaligrafi.',
-    legendColor: '#7a5a3a'
-  },
-  {
-    id: 6, num: '06', color: 0x4a4a6b,
-    title: 'APRESIASI & DISKUSI',
-    desc: 'Area duduk dan diskusi bersama seniman. Kursi-kursi melingkar, meja diskusi, dan papan tulis untuk sesi tanya jawab dan apresiasi.',
-    legendColor: '#4a4a6b'
+// ─── GLOBALS ───────────────────────────────────────────────
+let scene, camera, renderer, controls;
+let currentMode = 'explore';
+let isPointerLocked = false;
+let clock, delta;
+let moveF=false,moveB=false,moveL=false,moveR=false,moveUp=false,moveDown=false;
+let yaw=0, pitch=0, camSpeed=8;
+let orbitTheta=0.8, orbitPhi=1.0, orbitR=30, orbitTarget;
+let minimapCtx;
+let rooms=[];
+let currentRoom = null;
+let frameObjects = [];
+let artPieces = [];
+let animFrameId;
+ 
+const ROOMS_DATA = [
+  {id:1, name:"PENGANTAR TEMA", desc:"Pengantar konsep Fragmented Realities melalui panel teks dan visual", color:0x8a6a30},
+  {id:2, name:"AREA KARYA 2D", desc:"Menampilkan karya lukisan, glitch art, kolasi, fotografi dekonstruktif", color:0x4a7a8a},
+  {id:3, name:"AREA INSTALASI 3D", desc:"Instalasi dan objek 3D yang mengeksplorasi fragmentasi ruang dan bentuk", color:0x6a4a8a},
+  {id:4, name:"RUANG REFLEKSI", desc:"Ruang hening dengan soundscape ambient untuk refleksi", color:0x3a5a4a},
+  {id:5, name:"ARTIST STATEMENT", desc:"Area untuk membaca artist statement dalam bentuk puisi abstrak", color:0x8a4a3a},
+  {id:6, name:"APRESIASI & DISKUSI", desc:"Area duduk dan diskusi bersama seniman", color:0x5a5a3a},
+];
+ 
+// ─── INIT ───────────────────────────────────────────────────
+function init(){
+  clock = new THREE.Clock();
+  orbitTarget = new THREE.Vector3(0,3,0);
+ 
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0a0808);
+  scene.fog = new THREE.FogExp2(0x0a0808, 0.018);
+ 
+  renderer = new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.2;
+  document.getElementById('canvas-container').appendChild(renderer.domElement);
+  onResize();
+ 
+  camera = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.1, 300);
+  camera.position.set(-14, 3, 2);
+  yaw = Math.PI*0.3;
+  pitch = -0.1;
+ 
+  buildMuseum();
+  setupLights();
+  setupMinimap();
+  setupEvents();
+  animate();
+ 
+  simulateLoading();
+}
+ 
+// ─── LOADING ────────────────────────────────────────────────
+function simulateLoading(){
+  const bar = document.getElementById('loading-bar');
+  const status = document.getElementById('loading-status');
+  const steps = ['Membangun struktur museum...','Memasang dinding dan lantai...','Menata karya seni...','Memasang pencahayaan...','Siap dijelajahi!'];
+  let i=0;
+  function step(){
+    if(i<steps.length){
+      status.textContent=steps[i];
+      bar.style.width=(((i+1)/steps.length)*100)+'%';
+      i++;
+      setTimeout(step,400);
+    } else {
+      setTimeout(()=>{
+        document.getElementById('loading').style.opacity='0';
+        setTimeout(()=>document.getElementById('loading').style.display='none',800);
+        document.getElementById('fps-lock-msg').style.display='block';
+        setTimeout(()=>document.getElementById('fps-lock-msg').style.display='none',3000);
+      },300);
+    }
   }
-];
-
-const VIEWS = {
-  bird:  { x:  0, y: 28, z: 22, tx: 0, ty: 0, tz: 0 },
-  walk:  { x:  0, y:  4, z: 18, tx: 0, ty: 1, tz: 0 },
-  diag:  { x: 18, y: 16, z: 18, tx: 0, ty: 0, tz: 0 }
-};
-
-// ─────────────────────────────────────────────
-//  SCENE SETUP
-// ─────────────────────────────────────────────
-const canvas = document.getElementById('canvas');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-renderer.setClearColor(0x0a0a0a);
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 0.9;
-
-const scene = new THREE.Scene();
-scene.fog = new THREE.Fog(0x0a0a0a, 35, 70);
-
-const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 200);
-camera.position.set(0, 28, 22);
-camera.lookAt(0, 0, 0);
-
-// ─────────────────────────────────────────────
-//  HELPERS
-// ─────────────────────────────────────────────
-function box(w, h, d, color, x, y, z, rx=0, ry=0, rz=0, roughness=0.8, metalness=0.1) {
-  const geo = new THREE.BoxGeometry(w, h, d);
-  const mat = new THREE.MeshStandardMaterial({ color, roughness, metalness });
-  const m = new THREE.Mesh(geo, mat);
-  m.position.set(x, y, z);
-  m.rotation.set(rx, ry, rz);
-  m.castShadow = true; m.receiveShadow = true;
-  scene.add(m);
-  return m;
+  step();
 }
-function cyl(r, h, color, x, y, z, seg=32, roughness=0.7) {
-  const geo = new THREE.CylinderGeometry(r, r, h, seg);
-  const mat = new THREE.MeshStandardMaterial({ color, roughness });
-  const m = new THREE.Mesh(geo, mat);
-  m.position.set(x, y, z);
-  m.castShadow = true; m.receiveShadow = true;
-  scene.add(m);
-  return m;
+ 
+// ─── MUSEUM GEOMETRY ────────────────────────────────────────
+function buildMuseum(){
+  // Materials
+  const matFloor = new THREE.MeshStandardMaterial({color:0x1a1510,roughness:0.9,metalness:0.1});
+  const matWall = new THREE.MeshStandardMaterial({color:0x1e1a14,roughness:0.85,metalness:0.0});
+  const matCeiling = new THREE.MeshStandardMaterial({color:0x141210,roughness:1,metalness:0});
+  const matAccent = new THREE.MeshStandardMaterial({color:0xb48c50,roughness:0.3,metalness:0.7});
+  const matGlass = new THREE.MeshStandardMaterial({color:0x203040,roughness:0,metalness:0.1,transparent:true,opacity:0.3});
+  const matConcrete = new THREE.MeshStandardMaterial({color:0x2a2520,roughness:0.95,metalness:0});
+  const matDark = new THREE.MeshStandardMaterial({color:0x0d0b08,roughness:1,metalness:0});
+ 
+  // ── EXTERIOR BUILDING ──────────────────────────────────────
+  // Outer shell (thick walls)
+  buildExterior(matConcrete, matAccent, matGlass);
+ 
+  // ── FLOOR ─────────────────────────────────────────────────
+  // Main floor
+  const floorGeo = new THREE.PlaneGeometry(40,34);
+  const floor = new THREE.Mesh(floorGeo, matFloor);
+  floor.rotation.x = -Math.PI/2;
+  floor.receiveShadow = true;
+  scene.add(floor);
+ 
+  // Floor grid lines (decorative)
+  addFloorGrid();
+ 
+  // ── CEILING ───────────────────────────────────────────────
+  const ceilGeo = new THREE.PlaneGeometry(40,34);
+  const ceil = new THREE.Mesh(ceilGeo, matCeiling);
+  ceil.rotation.x = Math.PI/2;
+  ceil.position.y = 7;
+  scene.add(ceil);
+ 
+  // Ceiling beams
+  addCeilingBeams(matDark, matAccent);
+ 
+  // ── OUTER WALLS ───────────────────────────────────────────
+  buildWalls(matWall, matAccent);
+ 
+  // ── ROOM DIVIDERS ─────────────────────────────────────────
+  buildInnerWalls(matWall, matConcrete, matAccent);
+ 
+  // ── ART & FURNITURE ───────────────────────────────────────
+  buildRoom1(matAccent, matWall); // Pengantar Tema
+  buildRoom2(matAccent);          // Karya 2D
+  buildRoom3(matAccent, matGlass);// Instalasi 3D
+  buildRoom4(matAccent, matDark); // Ruang Refleksi
+  buildRoom5(matAccent);          // Artist Statement
+  buildRoom6(matAccent, matConcrete); // Apresiasi & Diskusi
+ 
+  // Entrance marking
+  buildEntrance(matAccent);
 }
-function sphere(r, color, x, y, z, roughness=0.6, metalness=0.2) {
-  const geo = new THREE.SphereGeometry(r, 32, 32);
-  const mat = new THREE.MeshStandardMaterial({ color, roughness, metalness });
-  const m = new THREE.Mesh(geo, mat);
-  m.position.set(x, y, z);
-  m.castShadow = true; m.receiveShadow = true;
-  scene.add(m);
-  return m;
+ 
+function buildExterior(matConcrete, matAccent, matGlass){
+  const extH = 8.5;
+  const extW = 42;
+  const extD = 36;
+ 
+  // Exterior walls (outside face)
+  const extMat = new THREE.MeshStandardMaterial({color:0x181410,roughness:0.9,metalness:0.1});
+ 
+  // Roof/top slab
+  const roofGeo = new THREE.BoxGeometry(extW, 0.5, extD);
+  const roof = new THREE.Mesh(roofGeo, matConcrete);
+  roof.position.set(0, extH+0.25, 0);
+  roof.castShadow=true; roof.receiveShadow=true;
+  scene.add(roof);
+ 
+  // Roof edge trim
+  const trimGeo = new THREE.BoxGeometry(extW+0.4, 0.15, extD+0.4);
+  const trim = new THREE.Mesh(trimGeo, new THREE.MeshStandardMaterial({color:0xb48c50,roughness:0.3,metalness:0.8}));
+  trim.position.set(0, extH+0.5, 0);
+  scene.add(trim);
+ 
+  // Foundation plinth
+  const plinthGeo = new THREE.BoxGeometry(extW+1, 0.8, extD+1);
+  const plinth = new THREE.Mesh(plinthGeo, matConcrete);
+  plinth.position.set(0,-0.4,0);
+  plinth.receiveShadow=true;
+  scene.add(plinth);
+ 
+  // Exterior facade strips (decorative vertical fins)
+  for(let i=-5;i<=5;i+=2){
+    const finGeo = new THREE.BoxGeometry(0.15, extH, 0.4);
+    const fin = new THREE.Mesh(finGeo, new THREE.MeshStandardMaterial({color:0x2a2218,roughness:0.7,metalness:0.3}));
+    fin.position.set(i*3.5, extH/2, -extD/2-0.1);
+    fin.castShadow=true;
+    scene.add(fin);
+  }
+ 
+  // Sign on facade
+  buildSignage();
 }
-
-// ─────────────────────────────────────────────
-//  LIGHTING
-// ─────────────────────────────────────────────
-const ambient = new THREE.AmbientLight(0x1a1510, 1.2);
-scene.add(ambient);
-
-const sun = new THREE.DirectionalLight(0xfff5e0, 1.8);
-sun.position.set(10, 25, 15);
-sun.castShadow = true;
-sun.shadow.mapSize.set(2048, 2048);
-sun.shadow.camera.near = 0.5;
-sun.shadow.camera.far = 80;
-sun.shadow.camera.left = -25;
-sun.shadow.camera.right = 25;
-sun.shadow.camera.top = 25;
-sun.shadow.camera.bottom = -25;
-scene.add(sun);
-
-// Accent spotlights per zone
-[
-  [0xa07840, -8, 12, -6],  // zone 1 — warm
-  [0x406040, 5, 12, -8],   // zone 2 — green
-  [0x204060, 0, 12, 1],    // zone 3 — blue
-  [0x503050, -8, 12, 4],   // zone 4 — purple
-  [0x705030, 8, 12, 4],    // zone 5 — gold
-  [0x303060, 0, 12, 9],    // zone 6 — indigo
-].forEach(([c, x, y, z]) => {
-  const s = new THREE.PointLight(c, 1.4, 18);
-  s.position.set(x, y, z);
-  scene.add(s);
-});
-
-// ─────────────────────────────────────────────
-//  FLOOR
-// ─────────────────────────────────────────────
-const floorGeo = new THREE.PlaneGeometry(30, 24);
-const floorMat = new THREE.MeshStandardMaterial({ color: 0x1a1814, roughness: 0.9 });
-const floor = new THREE.Mesh(floorGeo, floorMat);
-floor.rotation.x = -Math.PI / 2;
-floor.position.set(0, 0, 1);
-floor.receiveShadow = true;
-scene.add(floor);
-
-// Grid lines on floor
-const grid = new THREE.GridHelper(30, 30, 0x2a2620, 0x1e1c18);
-grid.position.set(0, 0.01, 1);
-scene.add(grid);
-
-// ─────────────────────────────────────────────
-//  WALLS (outer boundary — W=28, D=22)
-// ─────────────────────────────────────────────
-const wallH = 5, wallT = 0.3, wallC = 0x1e1c1a;
-// North wall (top)
-box(28, wallH, wallT, wallC,  0, wallH/2, -10);
-// South wall (bottom)
-box(28, wallH, wallT, wallC,  0, wallH/2,  12);
-// West wall
-box(wallT, wallH, 22, wallC, -14, wallH/2,  1);
-// East wall
-box(wallT, wallH, 22, wallC,  14, wallH/2,  1);
-
-// Inner partition — between zone 4 (left) and main hall
-box(wallT, wallH, 7, 0x252320, -6, wallH/2, 4.5); // vertical inner left
-box(9, wallH, wallT, 0x252320, -9.5, wallH/2, 1); // horizontal mid
-
-// Lower partition — separating zone 6 (bottom)
-box(28, wallH, wallT, 0x252320, 0, wallH/2, 7.5);
-
-// Ceiling
-const ceilGeo = new THREE.PlaneGeometry(28, 22);
-const ceilMat = new THREE.MeshStandardMaterial({ color: 0x111110, roughness: 1 });
-const ceil = new THREE.Mesh(ceilGeo, ceilMat);
-ceil.rotation.x = Math.PI / 2;
-ceil.position.set(0, wallH, 1);
-scene.add(ceil);
-
-// Ceiling recessed light fixtures (decorative)
-[[0,wallH-0.1,-4], [5,wallH-0.1,-4], [-5,wallH-0.1,-4],
- [0,wallH-0.1, 2], [8,wallH-0.1, 0], [-8,wallH-0.1, 2]].forEach(([x,y,z]) => {
-  const f = new THREE.Mesh(
-    new THREE.CircleGeometry(0.3, 16),
-    new THREE.MeshStandardMaterial({ color: 0xfff8e7, emissive: 0xfff8e7, emissiveIntensity: 1 })
-  );
-  f.rotation.x = Math.PI / 2;
-  f.position.set(x, y, z);
-  scene.add(f);
-});
-
-// ─────────────────────────────────────────────
-//  ZONE FLOOR MARKERS (clickable)
-// ─────────────────────────────────────────────
-const zoneMarkers = [];
-
-const ZONE_FLOORS = [
-  // [x, z, w, d, zoneIndex]
-  [-10, -5.5,  7,  9, 0],  // Zone 1 — Pengantar Tema (top-left)
-  [ 4,  -6,   14,  8, 1],  // Zone 2 — Karya 2D (top-right)
-  [ 0,   1,   11,  6, 2],  // Zone 3 — Instalasi 3D (center)
-  [-10,  3.5,  5,  6, 3],  // Zone 4 — Ruang Refleksi (left)
-  [ 10,  2,    7,  9, 4],  // Zone 5 — Artist Statement (right)
-  [ 0,   9.8, 28,  4.2,5], // Zone 6 — Diskusi (bottom)
-];
-
-ZONE_FLOORS.forEach(([x, z, w, d, zi]) => {
-  const zd = ZONES[zi];
-  const geo = new THREE.PlaneGeometry(w, d);
-  const mat = new THREE.MeshStandardMaterial({
-    color: zd.color, roughness: 0.95, transparent: true, opacity: 0.18,
+ 
+function buildSignage(){
+  // Museum name sign (geometric representation)
+  const signBase = new THREE.BoxGeometry(8, 1.2, 0.3);
+  const signMat = new THREE.MeshStandardMaterial({color:0xb48c50,roughness:0.2,metalness:0.9,emissive:0x4a3010,emissiveIntensity:0.3});
+  const sign = new THREE.Mesh(signBase, signMat);
+  sign.position.set(0, 7.5, -18.1);
+  scene.add(sign);
+}
+ 
+function addFloorGrid(){
+  const lineMat = new THREE.LineBasicMaterial({color:0x2a2010,transparent:true,opacity:0.5});
+  for(let i=-20;i<=20;i+=2){
+    const pts=[new THREE.Vector3(i,0.01,-17),new THREE.Vector3(i,0.01,17)];
+    const geo=new THREE.BufferGeometry().setFromPoints(pts);
+    scene.add(new THREE.Line(geo,lineMat));
+  }
+  for(let j=-17;j<=17;j+=2){
+    const pts=[new THREE.Vector3(-20,0.01,j),new THREE.Vector3(20,0.01,j)];
+    const geo=new THREE.BufferGeometry().setFromPoints(pts);
+    scene.add(new THREE.Line(geo,lineMat));
+  }
+}
+ 
+function addCeilingBeams(matDark, matAccent){
+  // Main structural beams
+  for(let i=-12;i<=12;i+=6){
+    const beamGeo = new THREE.BoxGeometry(0.4, 0.5, 34);
+    const beam = new THREE.Mesh(beamGeo, matDark);
+    beam.position.set(i, 6.75, 0);
+    beam.castShadow=true;
+    scene.add(beam);
+  }
+  // Cross beams
+  for(let j=-14;j<=14;j+=7){
+    const cbeamGeo = new THREE.BoxGeometry(40, 0.3, 0.3);
+    const cbeam = new THREE.Mesh(cbeamGeo, matDark);
+    cbeam.position.set(0, 6.85, j);
+    scene.add(cbeam);
+  }
+  // Accent strip on beams
+  for(let i=-12;i<=12;i+=6){
+    const stripGeo = new THREE.BoxGeometry(0.08, 0.08, 34);
+    const strip = new THREE.Mesh(stripGeo, matAccent);
+    strip.position.set(i-0.24, 6.5, 0);
+    scene.add(strip);
+  }
+}
+ 
+function buildWalls(matWall, matAccent){
+  const H=7, thick=0.4;
+ 
+  // North wall (z=-17)
+  addWall(40, H, thick, 0, H/2, -17, matWall);
+  // South wall (z=+17)
+  addWall(40, H, thick, 0, H/2, 17, matWall);
+  // West wall (x=-20)
+  addWall(thick, H, 34, -20, H/2, 0, matWall);
+  // East wall (x=+20) - with window opening
+  addWall(thick, H, 10, 20, H/2, -8, matWall);
+  addWall(thick, H, 10, 20, H/2, 8, matWall);
+  addWall(thick, 2, 14, 20, H-1, 0, matWall); // above window
+  addWall(thick, 2.5, 14, 20, 1.25, 0, matWall); // below window sill
+ 
+  // Window glass east
+  const glassGeo = new THREE.PlaneGeometry(14,2.5);
+  const glassMat = new THREE.MeshStandardMaterial({color:0x203040,roughness:0,metalness:0.1,transparent:true,opacity:0.25,side:THREE.DoubleSide});
+  const glass = new THREE.Mesh(glassGeo, glassMat);
+  glass.rotation.y = Math.PI/2;
+  glass.position.set(19.8, 4, 0);
+  scene.add(glass);
+ 
+  // Accent baseboards
+  addWall(40, 0.12, 0.12, 0, 0.06, -16.8, matAccent);
+  addWall(40, 0.12, 0.12, 0, 0.06, 16.8, matAccent);
+  addWall(0.12, 0.12, 34, -19.8, 0.06, 0, matAccent);
+ 
+  // Door frame at entrance (west wall, around x=-20,z=2)
+  const doorFrameMat = new THREE.MeshStandardMaterial({color:0xb48c50,roughness:0.3,metalness:0.7});
+  const dfTop = new THREE.Mesh(new THREE.BoxGeometry(0.3,0.15,3.5), doorFrameMat);
+  dfTop.position.set(-19.85, 4.15, 2);
+  scene.add(dfTop);
+  const dfL = new THREE.Mesh(new THREE.BoxGeometry(0.3,4,0.15), doorFrameMat);
+  dfL.position.set(-19.85, 2, 0.25);
+  scene.add(dfL);
+  const dfR = new THREE.Mesh(new THREE.BoxGeometry(0.3,4,0.15), doorFrameMat);
+  dfR.position.set(-19.85, 2, 3.75);
+  scene.add(dfR);
+}
+ 
+function addWall(w, h, d, x, y, z, mat){
+  const geo = new THREE.BoxGeometry(w,h,d);
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.set(x,y,z);
+  mesh.castShadow = mesh.receiveShadow = true;
+  scene.add(mesh);
+  return mesh;
+}
+ 
+function buildInnerWalls(matWall, matConcrete, matAccent){
+  const H=7;
+  // Divider between room 1 and room 2 (north zone) — partial wall
+  addWall(0.35, H, 12, -4, H/2, -11.5, matConcrete);
+  // Right side divider (between rooms 2&5)
+  addWall(0.35, H, 8, 11, H/2, -13, matConcrete);
+  // Room 4 left enclosure
+  addWall(0.35, H, 8, -4, H/2, 9, matConcrete);
+  // Room 4 top
+  addWall(8, H, 0.35, -8, H/2, 5, matConcrete);
+  // Room 5 top divider
+  addWall(8, H, 0.35, 16, H/2, -5.5, matConcrete);
+  // Room 6 divider (bottom section)
+  addWall(26, 0.35, 0.35, 3, 5.5, 9.5, matConcrete); // subtle ceiling marker
+  addWall(26, H*0.6, 0.35, 3, H*0.3, 9.5, matConcrete); // partial wall
+ 
+  // Accent strips on inner walls
+  const accMat = new THREE.MeshStandardMaterial({color:0xb48c50,roughness:0.3,metalness:0.8,emissive:0x3a2a05,emissiveIntensity:0.4});
+  // Vertical accent strips at wall junctions
+  const vStrip = (x,z)=>{
+    const s=new THREE.Mesh(new THREE.BoxGeometry(0.06,H,0.06),accMat);
+    s.position.set(x,H/2,z);
+    scene.add(s);
+  };
+  vStrip(-4,-7.5); vStrip(-4,5); vStrip(11,-9); vStrip(11,-17);
+}
+ 
+function buildEntrance(matAccent){
+  // Entrance signage mark on floor
+  const entranceMat = new THREE.MeshStandardMaterial({color:0xb48c50,roughness:0.3,metalness:0.8,emissive:0x4a3010,emissiveIntensity:0.5});
+  const arrGeo = new THREE.BoxGeometry(2,0.05,0.1);
+  const arr = new THREE.Mesh(arrGeo, entranceMat);
+  arr.position.set(-18,0.03,2);
+  scene.add(arr);
+ 
+  // Entrance mat/zone
+  const matZone = new THREE.PlaneGeometry(2.5,3);
+  const matZoneMesh = new THREE.Mesh(matZone, new THREE.MeshStandardMaterial({color:0x1a1410,roughness:1}));
+  matZoneMesh.rotation.x=-Math.PI/2;
+  matZoneMesh.position.set(-18,0.02,2);
+  scene.add(matZoneMesh);
+ 
+  // Exit sign (south-west)
+  const exitMat = new THREE.MeshStandardMaterial({color:0x8a3020,roughness:0.3,metalness:0.5,emissive:0x3a1008,emissiveIntensity:0.6});
+  const exitSign = new THREE.Mesh(new THREE.BoxGeometry(1.5,0.4,0.1), exitMat);
+  exitSign.position.set(-17, 3.5, 16.8);
+  scene.add(exitSign);
+ 
+  // Exit floor arrow
+  const exitArr = new THREE.Mesh(new THREE.BoxGeometry(1.5,0.05,0.08), entranceMat);
+  exitArr.rotation.y = Math.PI/2;
+  exitArr.position.set(-18, 0.03, 14);
+  scene.add(exitArr);
+}
+ 
+// ─── ROOM BUILDERS ──────────────────────────────────────────
+function buildRoom1(matAccent, matWall){
+  // Room 1: PENGANTAR TEMA (top-left area)
+  // Text panels on north wall
+  for(let i=0;i<3;i++){
+    const panelGeo = new THREE.BoxGeometry(2.5,3.5,0.08);
+    const panelMat = new THREE.MeshStandardMaterial({color:0x1a1508,roughness:0.8});
+    const panel = new THREE.Mesh(panelGeo, panelMat);
+    panel.position.set(-16+i*3.5, 3.5, -16.5);
+    panel.castShadow=true;
+    scene.add(panel);
+ 
+    // Panel frame
+    const frameGeo = new THREE.BoxGeometry(2.7,3.7,0.04);
+    const frameMesh = new THREE.Mesh(frameGeo, new THREE.MeshStandardMaterial({color:0xb48c50,roughness:0.3,metalness:0.8}));
+    frameMesh.position.set(-16+i*3.5, 3.5, -16.42);
+    scene.add(frameMesh);
+    frameObjects.push(frameMesh);
+ 
+    // Glowing text stripe on panel
+    const stripeGeo = new THREE.BoxGeometry(2,0.08,0.02);
+    for(let s=0;s<5;s++){
+      const stripe = new THREE.Mesh(stripeGeo, new THREE.MeshStandardMaterial({color:0x8a6a30,emissive:0x4a3010,emissiveIntensity:0.8,roughness:0.2}));
+      stripe.position.set(-16+i*3.5, 2.2+s*0.5, -16.44);
+      scene.add(stripe);
+    }
+  }
+ 
+  // Pillar in room 1
+  buildPillar(-10, 0, -13, matAccent);
+  buildPillar(-14, 0, -10, matAccent);
+ 
+  // Intro sculpture: stacked geometric fragments
+  const fragMat = new THREE.MeshStandardMaterial({color:0x3a2a10,roughness:0.6,metalness:0.4});
+  for(let i=0;i<5;i++){
+    const geo = new THREE.BoxGeometry(0.8-i*0.1, 0.3, 0.8-i*0.1);
+    const mesh = new THREE.Mesh(geo, fragMat);
+    mesh.position.set(-13, 0.15+i*0.35, -10);
+    mesh.rotation.y = i*0.3;
+    mesh.castShadow=true;
+    scene.add(mesh);
+    artPieces.push({mesh, baseY: mesh.position.y, phase: i*0.5, speed:0.8});
+  }
+}
+ 
+function buildRoom2(matAccent){
+  // Room 2: KARYA 2D (top-right)
+  // Art frames on north wall
+  const frameColors = [0xb48c50,0x8a6a30,0xc4a060];
+  const artColors = [0x1a2a3a,0x2a1a1a,0x1a2a1a,0x2a2a1a,0x3a1a2a];
+ 
+  // North wall frames
+  for(let i=0;i<3;i++){
+    addArtFrame(5+i*4, 3.5, -16.5, 3, 2, artColors[i], frameColors[i%3], true);
+  }
+  // East wall frames  
+  for(let i=0;i<2;i++){
+    addArtFrame(19.5, 4+i*1.5, -13+i*5, 2.5, 2, artColors[i+2], frameColors[i], false, true);
+  }
+ 
+  // Easels
+  buildEasel(12, 0, -12);
+  buildEasel(14, 0, -9);
+ 
+  // Tilted display panels (diagonal - per denah)
+  const diagMat = new THREE.MeshStandardMaterial({color:0x2a1a10,roughness:0.7,metalness:0.2});
+  for(let i=0;i<3;i++){
+    const geo = new THREE.BoxGeometry(1.8,2.5,0.08);
+    const mesh = new THREE.Mesh(geo, diagMat);
+    mesh.position.set(16+i*0.5, 2.5, -4-i*0.5);
+    mesh.rotation.y = -0.5+i*0.15;
+    mesh.castShadow=true;
+    scene.add(mesh);
+    artPieces.push({mesh, baseY:mesh.position.y, phase:i*1.2, speed:0.6});
+  }
+}
+ 
+function buildRoom3(matAccent, matGlass){
+  // Room 3: INSTALASI 3D — center, with large circular installation
+  // Central circular platform
+  const cyl = new THREE.CylinderGeometry(4, 4.2, 0.3, 32);
+  const cylMesh = new THREE.Mesh(cyl, new THREE.MeshStandardMaterial({color:0x1a1208,roughness:0.6,metalness:0.3}));
+  cylMesh.position.set(0, 0.15, 0);
+  cylMesh.receiveShadow=true;
+  scene.add(cylMesh);
+ 
+  // Platform edge glow strip
+  const edgeMat = new THREE.MeshStandardMaterial({color:0xb48c50,emissive:0x6a4010,emissiveIntensity:1,roughness:0.2,metalness:0.8});
+  const edge = new THREE.Mesh(new THREE.TorusGeometry(4.1, 0.06, 8, 64), edgeMat);
+  edge.rotation.x = Math.PI/2;
+  edge.position.set(0,0.3,0);
+  scene.add(edge);
+  artPieces.push({mesh:edge, baseY:0.3, phase:0, speed:0.5, glow:true});
+ 
+  // Central floating sphere (main sculpture)
+  const sphereGeo = new THREE.SphereGeometry(1.8, 32, 32);
+  const sphereMat = new THREE.MeshStandardMaterial({
+    color:0x101010, roughness:0.05, metalness:0.9,
+    emissive:0x1a0800, emissiveIntensity:0.5
   });
-  const m = new THREE.Mesh(geo, mat);
-  m.rotation.x = -Math.PI / 2;
-  m.position.set(x, 0.02, z);
-  m.userData = { zone: zd, floorIndex: zi };
-  scene.add(m);
-  zoneMarkers.push(m);
-
-  // Zone label indicator (thin glowing bar)
-  const bar = new THREE.Mesh(
-    new THREE.BoxGeometry(w, 0.05, 0.05),
-    new THREE.MeshStandardMaterial({ color: zd.color, emissive: zd.color, emissiveIntensity: 0.8 })
-  );
-  bar.position.set(x, 0.03, z - d/2 + 0.03);
-  scene.add(bar);
-});
-
-// ─────────────────────────────────────────────
-//  ZONE 1 — PENGANTAR TEMA (top-left)
-//  Large text panels on walls
-// ─────────────────────────────────────────────
-// Text panel boards on north wall
-[[-13, 2.5, -9.65], [-10, 2.5, -9.65], [-7, 2.5, -9.65]].forEach(([x,y,z], i) => {
-  box(2, 2.2, 0.08, [0x2a2520, 0x1e1a14, 0x3a3028][i], x, y, z);
-});
-// Vertical panels (like the black strips in 2D plan)
-[[-13.5, 2, -6], [-12.5, 2, -3], [-13.5, 2, 0]].forEach(([x,y,z]) => {
-  box(0.3, 3, 0.6, 0x1a1814, x, y, z, 0, 0.3, 0);
-});
-
-// ─────────────────────────────────────────────
-//  ZONE 2 — KARYA 2D (top-right area)
-//  Framed artworks on walls
-// ─────────────────────────────────────────────
-const artColors = [0x8b4513, 0x2f4f4f, 0x556b2f, 0x8b0000, 0x191970, 0x4b0082, 0x006400];
-// North wall artworks
-[[1,-9.65], [4,-9.65], [7,-9.65], [10,-9.65]].forEach(([x, z], i) => {
-  const w = 1.6 + Math.random()*0.8;
-  const h = 1.2 + Math.random()*1;
-  // Frame
-  box(w+0.15, h+0.15, 0.05, 0x1a1614, x, 2.5, z);
-  // Art surface
-  box(w, h, 0.08, artColors[i % artColors.length], x, 2.5, z - 0.02);
-});
-// East wall artworks
-[[13.65, -7], [13.65, -4], [13.65, -1]].forEach(([x, z], i) => {
-  const w = 1.4 + Math.random()*0.6;
-  const h = 1.0 + Math.random()*0.8;
-  box(0.05, h+0.15, w+0.15, 0x1a1614, x, 2.5, z);
-  box(0.08, h, w, artColors[(i+3) % artColors.length], x - 0.02, 2.5, z);
-});
-// Diagonal display easels
-[[9, 1, -8], [11, 1, -6], [7, 1, -6]].forEach(([x,y,z]) => {
-  box(0.08, 2, 0.08, 0x3a3028, x, y, z); // easel leg
-  box(1.2, 1.0, 0.06, artColors[Math.floor(Math.random()*7)], x, 2.4, z - 0.1);
-});
-
-// ─────────────────────────────────────────────
-//  ZONE 3 — INSTALASI 3D (center)
-//  Large sculptural elements
-// ─────────────────────────────────────────────
-// Central large sphere (the circle in 2D plan)
-const centerSphere = sphere(2.2, 0x2a3d52, 0, 2.2, 1, 0.5, 0.3);
-// Wireframe overlay on sphere
-const wireGeo = new THREE.SphereGeometry(2.25, 12, 8);
-const wireMat = new THREE.MeshBasicMaterial({ color: 0x4a7aaa, wireframe: true });
-const wire = new THREE.Mesh(wireGeo, wireMat);
-wire.position.set(0, 2.2, 1);
-scene.add(wire);
-
-// Fragmented shards around sphere
-const shardPositions = [
-  [2.8, 0.5, 0], [-2.5, 0.8, 2], [1.5, 0.3, -1.5],
-  [-1.8, 1.2, -0.8], [0.5, 0.2, 2.8], [3, 1.5, 1.5]
-];
-shardPositions.forEach(([x,y,z], i) => {
-  const geo = new THREE.OctahedronGeometry(0.3 + Math.random()*0.4, 0);
-  const mat = new THREE.MeshStandardMaterial({
-    color: [0x4a6890, 0x6a8aaa, 0x2a5070, 0x8aacca][i%4],
-    roughness: 0.4, metalness: 0.5
+  const sphere = new THREE.Mesh(sphereGeo, sphereMat);
+  sphere.position.set(0, 2.8, 0);
+  sphere.castShadow=true;
+  scene.add(sphere);
+  artPieces.push({mesh:sphere, baseY:2.8, phase:0, speed:0.7, float:true, scale:true});
+ 
+  // Orbiting fragments around sphere
+  for(let i=0;i<8;i++){
+    const ang = (i/8)*Math.PI*2;
+    const r = 2.8;
+    const fragGeo = new THREE.BoxGeometry(0.3+Math.random()*0.4, 0.15, 0.3+Math.random()*0.4);
+    const fragMat = new THREE.MeshStandardMaterial({color:0x2a1a08,roughness:0.4,metalness:0.7,emissive:0x1a0800,emissiveIntensity:0.3});
+    const frag = new THREE.Mesh(fragGeo, fragMat);
+    frag.position.set(Math.cos(ang)*r, 2.8+Math.sin(ang*2)*0.5, Math.sin(ang)*r);
+    frag.castShadow=true;
+    scene.add(frag);
+    artPieces.push({mesh:frag, baseY:frag.position.y, phase:ang, speed:0.4+i*0.05, orbit:true, orbitR:r, orbitCY:2.8, orbitAngle:ang});
+  }
+ 
+  // Vertical suspended rods (like the ones in original plan)
+  const rodMat = new THREE.MeshStandardMaterial({color:0x4a3a20,roughness:0.4,metalness:0.8});
+  for(let i=0;i<6;i++){
+    const ang = (i/6)*Math.PI*2;
+    const rGeo = new THREE.CylinderGeometry(0.04, 0.04, 4+Math.random()*2, 8);
+    const rod = new THREE.Mesh(rGeo, rodMat);
+    rod.position.set(Math.cos(ang)*5.5, 5, Math.sin(ang)*5.5);
+    rod.castShadow=true;
+    scene.add(rod);
+  }
+ 
+  // Wire connections from ceiling
+  for(let i=0;i<4;i++){
+    const wGeo = new THREE.CylinderGeometry(0.01,0.01,3,4);
+    const wMat = new THREE.MeshStandardMaterial({color:0x8a6a30,metalness:0.9,roughness:0.1});
+    const wire = new THREE.Mesh(wGeo, wMat);
+    wire.position.set((i-1.5)*1.2, 5.5, 0);
+    scene.add(wire);
+  }
+ 
+  // Glass vitrines around installation
+  for(let i=0;i<4;i++){
+    const ang = (i/4)*Math.PI*2+(Math.PI/4);
+    const vr = 7;
+    const vGeo = new THREE.BoxGeometry(1.2,1.8,1.2);
+    const vMat = new THREE.MeshStandardMaterial({color:0x101820,roughness:0,metalness:0.2,transparent:true,opacity:0.4});
+    const vitr = new THREE.Mesh(vGeo, vMat);
+    vitr.position.set(Math.cos(ang)*vr, 0.9, Math.sin(ang)*vr);
+    scene.add(vitr);
+    // object inside vitrine
+    const innerGeo = new THREE.IcosahedronGeometry(0.3, 0);
+    const innerMesh = new THREE.Mesh(innerGeo, new THREE.MeshStandardMaterial({color:0xb48c50,roughness:0.3,metalness:0.8,emissive:0x4a2a00,emissiveIntensity:0.5}));
+    innerMesh.position.set(Math.cos(ang)*vr, 1.2, Math.sin(ang)*vr);
+    scene.add(innerMesh);
+    artPieces.push({mesh:innerMesh,baseY:1.2,phase:ang,speed:1.2,float:true});
+  }
+}
+ 
+function buildRoom4(matAccent, matDark){
+  // Room 4: RUANG REFLEKSI (left side, quiet room)
+  // Dark ambient room with scattered light
+  const poolGeo = new THREE.PlaneGeometry(6,6);
+  const poolMat = new THREE.MeshStandardMaterial({color:0x0a0c10,roughness:0.05,metalness:0.5,transparent:true,opacity:0.8});
+  const pool = new THREE.Mesh(poolGeo, poolMat);
+  pool.rotation.x = -Math.PI/2;
+  pool.position.set(-13, 0.01, 8);
+  scene.add(pool);
+ 
+  // Reflection ripple rings
+  for(let i=1;i<=4;i++){
+    const ringGeo = new THREE.TorusGeometry(i*0.7, 0.02, 4, 32);
+    const ringMat = new THREE.MeshStandardMaterial({color:0x4a6a8a,emissive:0x102030,emissiveIntensity:0.8,transparent:true,opacity:0.6-i*0.1});
+    const ring = new THREE.Mesh(ringGeo, ringMat);
+    ring.rotation.x = -Math.PI/2;
+    ring.position.set(-13, 0.02+i*0.01, 8);
+    scene.add(ring);
+    artPieces.push({mesh:ring, baseY:ring.position.y, phase:i, speed:0.3, ripple:true});
+  }
+ 
+  // Meditation seats (dark low stools)
+  const stoolMat = new THREE.MeshStandardMaterial({color:0x1a1408,roughness:0.9});
+  const stoolPositions = [[-15,0,6],[-15,0,10],[-11,0,6],[-11,0,10]];
+  stoolPositions.forEach(([x,y,z])=>{
+    const s1 = new THREE.Mesh(new THREE.CylinderGeometry(0.4,0.35,0.45,16), stoolMat);
+    s1.position.set(x,0.22,z);
+    s1.castShadow=true;
+    scene.add(s1);
   });
-  const m = new THREE.Mesh(geo, mat);
-  m.position.set(x, y + 0.3, z);
-  m.rotation.set(Math.random(), Math.random(), Math.random());
-  m.castShadow = true;
-  scene.add(m);
-});
-
-// Hanging cables / wires from ceiling for suspended elements
-[[0, wallH, -1], [1.5, wallH, 0.5], [-1.5, wallH, 1.5]].forEach(([x,y,z]) => {
-  const cableGeo = new THREE.CylinderGeometry(0.02, 0.02, 2.5, 6);
-  const cableMat = new THREE.MeshStandardMaterial({ color: 0x444444 });
-  const cable = new THREE.Mesh(cableGeo, cableMat);
-  cable.position.set(x, y - 1.25, z);
-  scene.add(cable);
-  // Hanging shard
-  const geo2 = new THREE.OctahedronGeometry(0.25, 0);
-  const mat2 = new THREE.MeshStandardMaterial({ color: 0x6a90b0, metalness: 0.7, roughness: 0.2 });
-  const h2 = new THREE.Mesh(geo2, mat2);
-  h2.position.set(x, y - 2.8, z);
-  h2.castShadow = true;
-  scene.add(h2);
-});
-
-// ─────────────────────────────────────────────
-//  ZONE 4 — RUANG REFLEKSI (left pocket)
-//  Minimal — bench, atmosphere
-// ─────────────────────────────────────────────
-// Bench / seat platform
-box(3, 0.3, 0.9, 0x2a2420, -9.5, 0.15, 5);
-// Cushions
-[[-10.5, 0.32, 5], [-9.5, 0.32, 5], [-8.5, 0.32, 5]].forEach(([x,y,z]) => {
-  box(0.8, 0.1, 0.7, 0x3a2a3a, x, y, z);
-});
-// Ambient speaker pillar
-cyl(0.2, 1, 0x1a1a1a, -11.5, 0.5, 3.5);
-cyl(0.25, 0.08, 0x333333, -11.5, 1.04, 3.5);
-
-// Sound wave art on wall — abstract lines
-for (let i = 0; i < 8; i++) {
-  const h = 0.4 + Math.sin(i * 0.8) * 0.6 + 0.6;
-  box(0.06, h, 0.04, 0x5a3a6a, -13.5 + i * 0.45, h/2 + 0.5, -9.62);
-}
-
-// ─────────────────────────────────────────────
-//  ZONE 5 — ARTIST STATEMENT CORNER (right)
-//  Reading nook, poetry panels
-// ─────────────────────────────────────────────
-// Reading chair (simplified)
-box(1, 0.4, 0.9, 0x3a2a20, 11, 0.2, -1);  // seat
-box(1, 1.2, 0.2, 0x3a2a20, 11, 0.8, -1.5); // back
-
-// Small side table
-box(0.5, 0.5, 0.5, 0x2a2218, 12.2, 0.25, -1);
-// Lamp on table
-cyl(0.05, 0.8, 0x4a3a28, 12.2, 0.9, -1);
-// Lamp shade (cone)
-const lampGeo = new THREE.ConeGeometry(0.25, 0.35, 8);
-const lampMat = new THREE.MeshStandardMaterial({ color: 0xd4a96a, emissive: 0xd4a96a, emissiveIntensity: 0.4 });
-const lamp = new THREE.Mesh(lampGeo, lampMat);
-lamp.position.set(12.2, 1.46, -1);
-lamp.rotation.x = Math.PI;
-scene.add(lamp);
-
-// Text/poetry panels on east wall
-[[13.65, 2.5, 1], [13.65, 2.5, 3.5], [13.65, 2.5, 5.5]].forEach(([x,y,z]) => {
-  box(0.05, 1.8, 1.2, 0x1a1814, x, y, z);
-  // Lines suggesting text
-  for (let l = 0; l < 5; l++) {
-    box(0.04, 0.04, 0.7 + Math.random()*0.3, 0x3a3028, x - 0.02, y - 0.5 + l*0.22, z);
+ 
+  // Vertical light slit
+  const slitMat = new THREE.MeshStandardMaterial({color:0xb48c50,emissive:0xb48c50,emissiveIntensity:2,transparent:true,opacity:0.7});
+  const slit = new THREE.Mesh(new THREE.PlaneGeometry(0.15,5), slitMat);
+  slit.position.set(-19.5, 3.5, 8);
+  slit.rotation.y = Math.PI/2;
+  scene.add(slit);
+ 
+  // Text on wall
+  const textWallMat = new THREE.MeshStandardMaterial({color:0x1a1510,roughness:0.9});
+  const tw = new THREE.Mesh(new THREE.PlaneGeometry(5,3), textWallMat);
+  tw.position.set(-19.5, 4, 8);
+  tw.rotation.y = Math.PI/2;
+  scene.add(tw);
+  // Line fragments on text wall
+  for(let i=0;i<8;i++){
+    const lGeo = new THREE.PlaneGeometry(3+Math.random()*1.5, 0.06);
+    const lMat = new THREE.MeshStandardMaterial({color:0x6a5a30,emissive:0x2a1a05,emissiveIntensity:0.5});
+    const line = new THREE.Mesh(lGeo, lMat);
+    line.position.set(-19.4, 2.5+i*0.3, 8+Math.random()*0.5-0.25);
+    line.rotation.y = Math.PI/2;
+    scene.add(line);
   }
-});
-
-// Diagonal display shelves from the 2D plan
-box(0.08, 0.08, 2.5, 0x4a3a28, 10.5, 3, -7, 0, 0, 0.4); // diagonal shard/rail
-
-// ─────────────────────────────────────────────
-//  ZONE 6 — APRESIASI & DISKUSI (bottom)
-//  Seating circle, discussion table
-// ─────────────────────────────────────────────
-// Center discussion table
-cyl(1.0, 0.08, 0x2a2420, 0, 0.45, 9.8);
-// Table leg
-cyl(0.08, 0.45, 0x1a1814, 0, 0.22, 9.8);
-
-// Chairs around table (6 chairs)
-for (let i = 0; i < 6; i++) {
-  const angle = (i / 6) * Math.PI * 2;
-  const r = 1.9;
-  const cx = Math.sin(angle) * r;
-  const cz = 9.8 + Math.cos(angle) * r;
-  // Seat
-  box(0.7, 0.12, 0.7, 0x2a2830, cx, 0.45, cz);
-  // Chair leg (simple)
-  box(0.06, 0.45, 0.06, 0x1a1818, cx, 0.22, cz);
-  // Chair back
-  box(0.7, 0.7, 0.08, 0x2a2830, cx, 0.85, cz - Math.cos(angle)*0.35);
 }
-
-// Side benches (round blobs in 2D plan)
-[[-3.5, 9.2], [-1.2, 9.2], [1.2, 9.2]].forEach(([x,z]) => {
-  cyl(0.5, 0.4, 0x252328, x, 0.2, z);
-});
-[[-5.5, 9.5], [5.5, 9.5]].forEach(([x,z]) => {
-  box(1.2, 0.4, 0.7, 0x222230, x, 0.2, z);
-});
-
-// Discussion whiteboard
-box(0.06, 1.8, 3, 0x1e1e24, 0, 1.2, 11.7);
-// Whiteboard surface
-box(0.03, 1.6, 2.6, 0xf0ede8, 0, 1.2, 11.7);
-
-// Display bar at top of zone 6 (from 2D plan)
-box(6, 0.1, 0.3, 0x3a3a3a, 0, 0.08, 7.7);
-
-// ─────────────────────────────────────────────
-//  ENTRANCE MARKERS
-// ─────────────────────────────────────────────
-// Entrance arch — left side
-box(0.2, 3, 0.3, 0x3a3028, -14, 1.5, 0.5);
-box(0.2, 3, 0.3, 0x3a3028, -14, 1.5, -1.5);
-box(0.2, 0.2, 2.3, 0x3a3028, -14, 3.1, -0.5);
-
-// Exit arch — bottom
-box(2, 0.2, 0.3, 0x3a3028, -10, 3.2, 12);
-box(0.3, 3, 0.3, 0x3a3028, -11.3, 1.5, 12);
-box(0.3, 3, 0.3, 0x3a3028, -8.7, 1.5, 12);
-
-// Entrance floor indicator
-const entranceGeo = new THREE.PlaneGeometry(2.2, 0.5);
-const entranceMat = new THREE.MeshStandardMaterial({ color: 0xc8a96e, emissive: 0xc8a96e, emissiveIntensity: 0.3 });
-const entranceMesh = new THREE.Mesh(entranceGeo, entranceMat);
-entranceMesh.rotation.x = -Math.PI / 2;
-entranceMesh.position.set(-14, 0.02, -0.5);
-scene.add(entranceMesh);
-
-// ─────────────────────────────────────────────
-//  GLOBAL DECORATIVE ELEMENTS
-// ─────────────────────────────────────────────
-// Corner decorative pillars (inner)
-[[-6, 2.5, -9.65], [-6, 2.5, 1]].forEach(([x,y,z]) => {
-  cyl(0.15, wallH, 0x252320, x, y, z, 6);
-});
-
-// Floating fragmented geometry (ceiling art)
-[[3, 4.5, -3], [-4, 4.3, -5], [6, 4.6, -1]].forEach(([x,y,z], i) => {
-  const geo = new THREE.TetrahedronGeometry(0.4, 0);
-  const mat = new THREE.MeshStandardMaterial({ color: [0x4a6890, 0x8a6040, 0x6a4880][i], metalness: 0.6, roughness: 0.3 });
-  const m = new THREE.Mesh(geo, mat);
-  m.position.set(x, y, z);
-  m.rotation.set(Math.random(), Math.random(), Math.random());
-  scene.add(m);
-});
-
-// ─────────────────────────────────────────────
-//  RAYCASTER / CLICK INTERACTION
-// ─────────────────────────────────────────────
-const raycaster = new THREE.Raycaster();
-const mouse = new THREE.Vector2();
-let selectedZone = null;
-
-canvas.addEventListener('click', (e) => {
-  mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-  mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-  raycaster.setFromCamera(mouse, camera);
-  const hits = raycaster.intersectObjects(zoneMarkers);
-  if (hits.length) {
-    const zd = hits[0].object.userData.zone;
-    showPanel(zd);
+ 
+function buildRoom5(matAccent){
+  // Room 5: ARTIST STATEMENT (right side)
+  // Reading corner with panels
+  for(let i=0;i<3;i++){
+    const panGeo = new THREE.BoxGeometry(0.08, 4, 2);
+    const panMat = new THREE.MeshStandardMaterial({color:0x1a1208,roughness:0.8});
+    const pan = new THREE.Mesh(panGeo, panMat);
+    pan.position.set(19.5, 3, -10-i*2);
+    pan.castShadow=true;
+    scene.add(pan);
+ 
+    // Poem lines on panel
+    for(let j=0;j<6;j++){
+      const lineGeo = new THREE.PlaneGeometry(1.4+Math.random()*0.4, 0.06);
+      const lineMat = new THREE.MeshStandardMaterial({color:0x8a7a50,emissive:0x3a2a10,emissiveIntensity:0.3});
+      const lMesh = new THREE.Mesh(lineGeo, lineMat);
+      lMesh.position.set(19.42, 1.5+j*0.45, -10-i*2);
+      lMesh.rotation.y = Math.PI/2;
+      scene.add(lMesh);
+    }
   }
-});
-
-function showPanel(zd) {
-  document.getElementById('pNum').textContent = zd.num;
-  document.getElementById('pTitle').textContent = zd.title;
-  document.getElementById('pDesc').textContent = zd.desc;
-  document.getElementById('infopanel').classList.add('visible');
+ 
+  // Artist corner seat
+  buildBenchSeat(16, 0, -10, 1.5, 3);
+  buildBenchSeat(16, 0, -7, 1.5, 3);
+ 
+  // Accent lamp
+  buildFloorLamp(13, 0, -10);
+ 
+  // Fragmented mirror wall
+  const mirrorFrags = [
+    [16,-13],[17,-12],[15,-11],[18,-14],[14,-13],[17,-10]
+  ];
+  mirrorFrags.forEach(([x,z],i)=>{
+    const size = 0.6+Math.random()*0.8;
+    const geo = new THREE.PlaneGeometry(size, size*1.2);
+    const mat = new THREE.MeshStandardMaterial({color:0x304050,roughness:0.05,metalness:0.95,envMapIntensity:1});
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(x, 2+Math.random()*2, z);
+    mesh.rotation.y = (Math.random()-0.5)*0.5;
+    mesh.rotation.z = (Math.random()-0.5)*0.2;
+    scene.add(mesh);
+  });
 }
-document.getElementById('closePanel').addEventListener('click', () => {
-  document.getElementById('infopanel').classList.remove('visible');
-});
-
-// ─────────────────────────────────────────────
-//  LEGEND
-// ─────────────────────────────────────────────
-const legendZones = document.getElementById('legendZones');
-ZONES.forEach(z => {
-  const el = document.createElement('div');
-  el.className = 'zone-pill';
-  el.innerHTML = `<div class="zone-dot" style="background:${z.legendColor}"></div>${z.num} ${z.title}`;
-  el.style.cursor = 'pointer';
-  el.addEventListener('click', () => showPanel(z));
-  legendZones.appendChild(el);
-});
-
-// ─────────────────────────────────────────────
-//  ORBIT CONTROLS (manual)
-// ─────────────────────────────────────────────
-let isDragging = false, prevMouse = { x: 0, y: 0 };
-let sphericalTheta = 0.1, sphericalPhi = 0.8, sphericalR = 36;
-let targetTheta = 0.1, targetPhi = 0.8, targetR = 36;
-let targetLookX = 0, targetLookY = 0, targetLookZ = 0;
-let currentLookX = 0, currentLookY = 0, currentLookZ = 0;
-
-canvas.addEventListener('mousedown', (e) => { isDragging = true; prevMouse = { x: e.clientX, y: e.clientY }; });
-canvas.addEventListener('mouseup', () => { isDragging = false; });
-canvas.addEventListener('mousemove', (e) => {
-  if (!isDragging) return;
-  const dx = e.clientX - prevMouse.x;
-  const dy = e.clientY - prevMouse.y;
-  targetTheta -= dx * 0.008;
-  targetPhi = Math.max(0.15, Math.min(1.4, targetPhi + dy * 0.008));
-  prevMouse = { x: e.clientX, y: e.clientY };
-});
-canvas.addEventListener('wheel', (e) => {
-  targetR = Math.max(8, Math.min(55, targetR + e.deltaY * 0.05));
-});
-
-// Touch
-let prevTouch = null;
-canvas.addEventListener('touchstart', (e) => { prevTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY }; });
-canvas.addEventListener('touchmove', (e) => {
-  if (!prevTouch) return;
-  const dx = e.touches[0].clientX - prevTouch.x;
-  const dy = e.touches[0].clientY - prevTouch.y;
-  targetTheta -= dx * 0.01;
-  targetPhi = Math.max(0.15, Math.min(1.4, targetPhi + dy * 0.01));
-  prevTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-});
-
-function setView(v) {
-  const pos = VIEWS[v];
-  // Convert to spherical
-  const dx = pos.x - pos.tx, dy = pos.y - pos.ty, dz = pos.z - pos.tz;
-  targetR = Math.sqrt(dx*dx+dy*dy+dz*dz);
-  targetPhi = Math.acos(dy / targetR);
-  targetTheta = Math.atan2(dx, dz);
-  targetLookX = pos.tx; targetLookY = pos.ty; targetLookZ = pos.tz;
-}
-
-document.getElementById('btnBird').addEventListener('click', () => {
-  setView('bird');
-  document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('btnBird').classList.add('active');
-});
-document.getElementById('btnWalk').addEventListener('click', () => {
-  setView('walk');
-  document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('btnWalk').classList.add('active');
-});
-document.getElementById('btnDiag').addEventListener('click', () => {
-  setView('diag');
-  document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('btnDiag').classList.add('active');
-});
-
-// ─────────────────────────────────────────────
-//  ANIMATION
-// ─────────────────────────────────────────────
-let t = 0;
-function animate() {
-  requestAnimationFrame(animate);
-  t += 0.01;
-
-  // Lerp spherical
-  sphericalTheta += (targetTheta - sphericalTheta) * 0.07;
-  sphericalPhi   += (targetPhi   - sphericalPhi)   * 0.07;
-  sphericalR     += (targetR     - sphericalR)     * 0.07;
-  currentLookX   += (targetLookX - currentLookX)   * 0.07;
-  currentLookY   += (targetLookY - currentLookY)   * 0.07;
-  currentLookZ   += (targetLookZ - currentLookZ)   * 0.07;
-
-  camera.position.set(
-    currentLookX + sphericalR * Math.sin(sphericalPhi) * Math.sin(sphericalTheta),
-    currentLookY + sphericalR * Math.cos(sphericalPhi),
-    currentLookZ + sphericalR * Math.sin(sphericalPhi) * Math.cos(sphericalTheta)
+ 
+function buildRoom6(matAccent, matConcrete){
+  // Room 6: APRESIASI & DISKUSI (bottom area)
+  // Large table
+  buildTable(0, 0, 13, 4, 2);
+  // Chairs around table
+  const chairAngles = [0,Math.PI/2,Math.PI,-Math.PI/2,Math.PI/4,-Math.PI/4,3*Math.PI/4,-3*Math.PI/4];
+  chairAngles.forEach((ang,i)=>{
+    const r = i<4 ? 2.8 : 3.2;
+    buildChair(Math.cos(ang)*r, 0, 13+Math.sin(ang)*r, ang);
+  });
+ 
+  // Bar/display counter
+  const counterGeo = new THREE.BoxGeometry(10, 1.1, 0.7);
+  const counterMat = new THREE.MeshStandardMaterial({color:0x1a1208,roughness:0.7,metalness:0.3});
+  const counter = new THREE.Mesh(counterGeo, counterMat);
+  counter.position.set(0, 0.55, 16.3);
+  counter.castShadow=true;
+  scene.add(counter);
+  // Counter top accent
+  const ctop = new THREE.Mesh(new THREE.BoxGeometry(10.1, 0.08, 0.75), matAccent);
+  ctop.position.set(0, 1.15, 16.3);
+  scene.add(ctop);
+ 
+  // Stool cluster (per denah - rounded seats)
+  const stoolPos = [[-4,0,14],[0,0,14],[4,0,14],[-2,0,16],[2,0,16]];
+  stoolPos.forEach(([x,y,z])=>{
+    const stool = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.35,0.3,0.45,16),
+      new THREE.MeshStandardMaterial({color:0x2a1a10,roughness:0.8})
+    );
+    stool.position.set(x,0.22,z);
+    stool.castShadow=true;
+    scene.add(stool);
+    // cushion
+    const cush = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.36,0.36,0.1,16),
+      new THREE.MeshStandardMaterial({color:0x3a2a10,roughness:0.9})
+    );
+    cush.position.set(x,0.5,z);
+    scene.add(cush);
+  });
+ 
+  // Projector screen
+  const screenGeo = new THREE.PlaneGeometry(6, 3.5);
+  const screenMat = new THREE.MeshStandardMaterial({color:0x121010,roughness:1,emissive:0x080604,emissiveIntensity:0.5});
+  const screen = new THREE.Mesh(screenGeo, screenMat);
+  screen.position.set(0, 4.5, 16.6);
+  scene.add(screen);
+  // Screen border
+  const sBorder = new THREE.Mesh(
+    new THREE.BoxGeometry(6.2,3.7,0.04),
+    new THREE.MeshStandardMaterial({color:0x1a1208,roughness:0.8})
   );
-  camera.lookAt(currentLookX, currentLookY, currentLookZ);
-
-  // Animate center sphere slow rotation
-  wire.rotation.y = t * 0.15;
-  wire.rotation.x = Math.sin(t * 0.08) * 0.15;
-  centerSphere.position.y = 2.2 + Math.sin(t * 0.5) * 0.12;
-  wire.position.y = 2.2 + Math.sin(t * 0.5) * 0.12;
-
+  sBorder.position.set(0,4.5,16.55);
+  scene.add(sBorder);
+ 
+  // Projector mount
+  const projGeo = new THREE.BoxGeometry(0.5,0.3,0.6);
+  const proj = new THREE.Mesh(projGeo, new THREE.MeshStandardMaterial({color:0x2a2010,roughness:0.4,metalness:0.6}));
+  proj.position.set(0, 6.5, 8);
+  scene.add(proj);
+}
+ 
+// ─── FURNITURE HELPERS ──────────────────────────────────────
+function buildPillar(x,y,z,matAccent){
+  const pMat = new THREE.MeshStandardMaterial({color:0x1e1a12,roughness:0.7,metalness:0.2});
+  const base = new THREE.Mesh(new THREE.BoxGeometry(0.6,7,0.6), pMat);
+  base.position.set(x,3.5,z);
+  base.castShadow=true;
+  scene.add(base);
+  const cap = new THREE.Mesh(new THREE.BoxGeometry(0.8,0.15,0.8), matAccent);
+  cap.position.set(x,7.05,z);
+  scene.add(cap);
+  const base2 = new THREE.Mesh(new THREE.BoxGeometry(0.8,0.15,0.8), matAccent);
+  base2.position.set(x,0.07,z);
+  scene.add(base2);
+}
+ 
+function addArtFrame(x,y,z,w,h,artColor,frameColor,northFace,eastFace){
+  const fMat = new THREE.MeshStandardMaterial({color:frameColor,roughness:0.3,metalness:0.7});
+  const aSize = 0.06;
+ 
+  // Frame border
+  const frameGeo = new THREE.BoxGeometry(northFace?w+0.1:aSize, h+0.1, northFace?aSize:w+0.1);
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(northFace?w+0.14:0.14, h+0.14, northFace?0.14:w+0.14), fMat);
+  frame.position.set(x,y,z);
+  frame.castShadow=true;
+  scene.add(frame);
+ 
+  // Art canvas
+  const cGeo = new THREE.PlaneGeometry(w,h);
+  const cMat = new THREE.MeshStandardMaterial({color:artColor,roughness:0.95,emissive:new THREE.Color(artColor).multiplyScalar(0.3),emissiveIntensity:0.4});
+  const canvas3d = new THREE.Mesh(cGeo, cMat);
+  canvas3d.position.set(x+(eastFace?0.08:0), y, z+(northFace?0.08:0));
+  if(northFace) canvas3d.rotation.y = 0;
+  if(eastFace) canvas3d.rotation.y = -Math.PI/2;
+  scene.add(canvas3d);
+ 
+  // Art texture lines
+  for(let i=0;i<8;i++){
+    const lGeo = new THREE.PlaneGeometry(w*(0.3+Math.random()*0.6), 0.05);
+    const lMat = new THREE.MeshStandardMaterial({color:0xb48c50,emissive:0x4a3010,emissiveIntensity:0.5,transparent:true,opacity:0.5+Math.random()*0.3});
+    const ln = new THREE.Mesh(lGeo, lMat);
+    ln.position.set(x+(eastFace?0.1:0), y-h*0.35+i*(h*0.1), z+(northFace?0.1:0));
+    if(eastFace) ln.rotation.y = -Math.PI/2;
+    scene.add(ln);
+  }
+ 
+  frameObjects.push(frame);
+  artPieces.push({mesh:canvas3d, baseY:y, phase:Math.random()*Math.PI*2, speed:0.3});
+}
+ 
+function buildEasel(x,y,z){
+  const eMat = new THREE.MeshStandardMaterial({color:0x2a1a08,roughness:0.9,metalness:0.1});
+  // legs
+  for(let i=0;i<3;i++){
+    const ang = (i/3)*Math.PI*2;
+    const legGeo = new THREE.CylinderGeometry(0.03,0.03,1.8,4);
+    const leg = new THREE.Mesh(legGeo, eMat);
+    leg.position.set(x+Math.cos(ang)*0.3,0.9,z+Math.sin(ang)*0.3);
+    leg.rotation.x = Math.sin(ang)*0.25;
+    leg.rotation.z = -Math.cos(ang)*0.25;
+    scene.add(leg);
+  }
+  // canvas on easel
+  const cGeo = new THREE.BoxGeometry(1.2,1.6,0.04);
+  const cMat = new THREE.MeshStandardMaterial({color:0x1a1010,roughness:0.9,emissive:0x0a0808,emissiveIntensity:0.3});
+  const cv = new THREE.Mesh(cGeo, cMat);
+  cv.position.set(x,2,z);
+  cv.castShadow=true;
+  scene.add(cv);
+  artPieces.push({mesh:cv,baseY:2,phase:Math.random()*6,speed:0.4});
+}
+ 
+function buildBenchSeat(x,y,z,w,d){
+  const bMat = new THREE.MeshStandardMaterial({color:0x1a1208,roughness:0.8,metalness:0.2});
+  const bench = new THREE.Mesh(new THREE.BoxGeometry(w,0.1,d), bMat);
+  bench.position.set(x,0.45,z);
+  bench.castShadow=true;
+  scene.add(bench);
+  // legs
+  for(let i=0;i<4;i++){
+    const lx = (i%2===0?w/2-0.1:-(w/2-0.1));
+    const lz = (i<2?d/2-0.1:-(d/2-0.1));
+    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.06,0.45,0.06), bMat);
+    leg.position.set(x+lx,0.22,z+lz);
+    scene.add(leg);
+  }
+  // cushion
+  const cush = new THREE.Mesh(new THREE.BoxGeometry(w,0.12,d), new THREE.MeshStandardMaterial({color:0x2a1a10,roughness:0.9}));
+  cush.position.set(x,0.51,z);
+  scene.add(cush);
+}
+ 
+function buildTable(x,y,z,w,d){
+  const tMat = new THREE.MeshStandardMaterial({color:0x1a1208,roughness:0.7,metalness:0.2});
+  const top = new THREE.Mesh(new THREE.BoxGeometry(w,0.08,d), tMat);
+  top.position.set(x,0.75,z);
+  top.castShadow=true;
+  scene.add(top);
+  // table legs
+  [[w/2-0.15,d/2-0.15],[-(w/2-0.15),d/2-0.15],[w/2-0.15,-(d/2-0.15)],[-(w/2-0.15),-(d/2-0.15)]].forEach(([lx,lz])=>{
+    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.08,0.75,0.08), tMat);
+    leg.position.set(x+lx,0.37,z+lz);
+    scene.add(leg);
+  });
+}
+ 
+function buildChair(x,y,z,angle){
+  const cMat = new THREE.MeshStandardMaterial({color:0x201810,roughness:0.85,metalness:0.1});
+  // seat
+  const seat = new THREE.Mesh(new THREE.BoxGeometry(0.5,0.07,0.5), cMat);
+  seat.position.set(x,0.47,z);
+  seat.rotation.y = angle;
+  seat.castShadow=true;
+  scene.add(seat);
+  // back
+  const back = new THREE.Mesh(new THREE.BoxGeometry(0.5,0.6,0.05), cMat);
+  back.position.set(x+Math.sin(angle)*0.22, 0.77, z+Math.cos(angle)*0.22);
+  back.rotation.y = angle;
+  scene.add(back);
+}
+ 
+function buildFloorLamp(x,y,z){
+  const lMat = new THREE.MeshStandardMaterial({color:0x3a2a10,roughness:0.4,metalness:0.8});
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,1.8,8), lMat);
+  pole.position.set(x,0.9,z);
+  scene.add(pole);
+  const shade = new THREE.Mesh(new THREE.ConeGeometry(0.3,0.3,12,1,true), new THREE.MeshStandardMaterial({color:0x8a6a30,emissive:0x6a4010,emissiveIntensity:1.5,side:THREE.BackSide}));
+  shade.position.set(x,1.95,z);
+  scene.add(shade);
+  // point light at lamp
+  const pl = new THREE.PointLight(0xffaa44, 1.5, 6);
+  pl.position.set(x,1.8,z);
+  scene.add(pl);
+}
+ 
+// ─── LIGHTS ─────────────────────────────────────────────────
+function setupLights(){
+  // Ambient
+  const ambient = new THREE.AmbientLight(0x2a1e0e, 0.8);
+  scene.add(ambient);
+ 
+  // Main gallery lights (track lighting from ceiling)
+  const trackPositions = [
+    [-14,-12],[-14,-6],[-14,0],[-14,6],[-14,12],
+    [-7,-12],[-7,-6],[-7,0],[-7,6],[-7,12],
+    [0,-12],[0,-6],[0,0],[0,6],[0,12],
+    [7,-12],[7,-6],[7,0],[7,6],[7,12],
+    [14,-12],[14,-6],[14,0],[14,6],[14,12],
+  ];
+ 
+  trackPositions.forEach(([x,z],i)=>{
+    const pl = new THREE.PointLight(0xffeedd, 0.8, 10, 2);
+    pl.position.set(x, 6.3, z);
+    pl.castShadow = (i%5===0); // only some cast shadows for performance
+    pl.shadow.mapSize.set(512,512);
+    scene.add(pl);
+ 
+    // Light fixture mesh
+    const fix = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.12,0.08,0.15,8),
+      new THREE.MeshStandardMaterial({color:0x2a2010,roughness:0.3,metalness:0.8})
+    );
+    fix.position.set(x,6.7,z);
+    scene.add(fix);
+  });
+ 
+  // Accent colored lights for rooms
+  const roomLights = [
+    {pos:[-14,3,-12], color:0xffcc66, intensity:2, dist:8}, // Room 1
+    {pos:[10,3,-12], color:0x66aaff, intensity:2, dist:8},  // Room 2
+    {pos:[0,4,0], color:0xff8844, intensity:3, dist:12},    // Room 3 center
+    {pos:[-13,3,8], color:0x4488aa, intensity:1.5, dist:7}, // Room 4
+    {pos:[16,3,-12], color:0xffaaaa, intensity:1.5, dist:7},// Room 5
+    {pos:[0,3,13], color:0xaaffcc, intensity:1.5, dist:10}, // Room 6
+  ];
+  roomLights.forEach(({pos,color,intensity,dist})=>{
+    const pl = new THREE.PointLight(color, intensity, dist, 2);
+    pl.position.set(...pos);
+    scene.add(pl);
+  });
+ 
+  // Entrance directional light
+  const dirLight = new THREE.DirectionalLight(0xffeedd, 0.5);
+  dirLight.position.set(-20, 10, 0);
+  dirLight.target.position.set(0, 0, 0);
+  dirLight.castShadow = true;
+  dirLight.shadow.mapSize.set(2048,2048);
+  dirLight.shadow.camera.near = 0.1;
+  dirLight.shadow.camera.far = 80;
+  dirLight.shadow.camera.left = -30;
+  dirLight.shadow.camera.right = 30;
+  dirLight.shadow.camera.top = 20;
+  dirLight.shadow.camera.bottom = -20;
+  scene.add(dirLight);
+  scene.add(dirLight.target);
+ 
+  // Exterior sky light simulation
+  const skyLight = new THREE.HemisphereLight(0x4a6080, 0x1a0800, 0.4);
+  scene.add(skyLight);
+}
+ 
+// ─── MINIMAP ────────────────────────────────────────────────
+function setupMinimap(){
+  const mc = document.getElementById('minimap-canvas');
+  minimapCtx = mc.getContext('2d');
+}
+ 
+function drawMinimap(){
+  const ctx = minimapCtx;
+  const W=160, H=160;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#0a0a0a';
+  ctx.fillRect(0,0,W,H);
+ 
+  // Scale: museum is ~40x34 units, minimap is 160x160px
+  const sx=W/44, sy=H/38;
+  const ox=W/2, oy=H/2;
+ 
+  const toMX=(x)=>(x*sx+ox);
+  const toMZ=(z)=>(z*sy+oy);
+ 
+  // Museum outline
+  ctx.strokeStyle='#b48c5080';
+  ctx.lineWidth=1;
+  ctx.strokeRect(toMX(-20),toMZ(-17),40*sx,34*sy);
+ 
+  // Room zones
+  const roomZones=[
+    {x:-20,z:-17,w:16,h:10,color:'#8a6a3020',label:'1'},
+    {x:-4,z:-17,w:24,h:10,color:'#4a7a8a20',label:'2'},
+    {x:-20,z:-7,w:24,h:16,color:'#6a4a8a20',label:'3'},
+    {x:-20,z:5,w:16,h:12,color:'#3a5a4a20',label:'4'},
+    {x:11,z:-17,w:9,h:12,color:'#8a4a3a20',label:'5'},
+    {x:-20,z:9,w:40,h:8,color:'#5a5a3a20',label:'6'},
+  ];
+  roomZones.forEach(({x,z,w,h,color,label})=>{
+    ctx.fillStyle=color;
+    ctx.fillRect(toMX(x),toMZ(z),w*sx,h*sy);
+    ctx.fillStyle='#b48c5060';
+    ctx.font='8px monospace';
+    ctx.fillText(label,toMX(x+w/2-0.3),toMZ(z+h/2+0.3));
+  });
+ 
+  // Player position
+  const px=toMX(camera.position.x);
+  const pz=toMZ(camera.position.z);
+  ctx.fillStyle='#f0ebe0';
+  ctx.beginPath();
+  ctx.arc(Math.min(Math.max(px,4),W-4), Math.min(Math.max(pz,4),H-4), 4, 0, Math.PI*2);
+  ctx.fill();
+ 
+  // Direction indicator
+  const fwdX = -Math.sin(yaw);
+  const fwdZ = -Math.cos(yaw);
+  ctx.strokeStyle='#b48c50';
+  ctx.lineWidth=1.5;
+  ctx.beginPath();
+  ctx.moveTo(Math.min(Math.max(px,4),W-4), Math.min(Math.max(pz,4),H-4));
+  ctx.lineTo(Math.min(Math.max(px,4),W-4)+fwdX*8, Math.min(Math.max(pz,4),H-4)+fwdZ*8);
+  ctx.stroke();
+}
+ 
+// ─── ROOM DETECTION ─────────────────────────────────────────
+function detectRoom(){
+  const x=camera.position.x, z=camera.position.z;
+  let detected=null;
+  if(x<-4&&z<-7) detected=0;
+  else if(x>-4&&z<-7) detected=1;
+  else if(z>-7&&z<5&&x>-20) detected=2;
+  else if(x<-4&&z>5) detected=3;
+  else if(x>11&&z<-5) detected=4;
+  else if(z>9) detected=5;
+  if(detected!==null&&detected!==currentRoom){
+    currentRoom=detected;
+    const ri=document.getElementById('room-info');
+    const data=ROOMS_DATA[detected];
+    document.getElementById('room-num').textContent=`Area ${data.id}`;
+    document.getElementById('room-title').textContent=data.name;
+    document.getElementById('room-desc').textContent=data.desc;
+    ri.classList.add('visible');
+    setTimeout(()=>ri.classList.remove('visible'),4000);
+  }
+}
+ 
+// ─── EVENTS ─────────────────────────────────────────────────
+function setupEvents(){
+  window.addEventListener('resize',onResize);
+  window.addEventListener('keydown',onKeyDown);
+  window.addEventListener('keyup',onKeyUp);
+  window.addEventListener('wheel',onWheel,{passive:false});
+ 
+  document.addEventListener('pointerlockchange',()=>{
+    isPointerLocked=document.pointerLockElement===renderer.domElement;
+    document.getElementById('crosshair').style.display=isPointerLocked?'block':'none';
+  });
+ 
+  document.addEventListener('mousemove',(e)=>{
+    if(currentMode==='explore'&&isPointerLocked){
+      const sens=0.0018;
+      yaw-=e.movementX*sens;
+      pitch-=e.movementY*sens;
+      pitch=Math.max(-Math.PI*0.4, Math.min(Math.PI*0.4, pitch));
+    }else if(currentMode==='orbit'){
+      if(e.buttons&1){
+        orbitTheta-=e.movementX*0.005;
+        orbitPhi=Math.max(0.2, Math.min(Math.PI*0.48, orbitPhi-e.movementY*0.005));
+      }
+    }
+  });
+ 
+  renderer.domElement.addEventListener('click',()=>{
+    if(currentMode==='explore'&&!isPointerLocked){
+      renderer.domElement.requestPointerLock();
+    }
+  });
+ 
+  document.addEventListener('keydown',(e)=>{
+    if(e.key==='Escape'&&isPointerLocked) document.exitPointerLock();
+  });
+}
+ 
+function onKeyDown(e){
+  switch(e.code){
+    case'KeyW':case'ArrowUp': moveF=true;break;
+    case'KeyS':case'ArrowDown': moveB=true;break;
+    case'KeyA':case'ArrowLeft': moveL=true;break;
+    case'KeyD':case'ArrowRight': moveR=true;break;
+    case'KeyQ': moveDown=true;break;
+    case'KeyE': moveUp=true;break;
+    case'ShiftLeft':case'ShiftRight': camSpeed=16;break;
+  }
+}
+function onKeyUp(e){
+  switch(e.code){
+    case'KeyW':case'ArrowUp': moveF=false;break;
+    case'KeyS':case'ArrowDown': moveB=false;break;
+    case'KeyA':case'ArrowLeft': moveL=false;break;
+    case'KeyD':case'ArrowRight': moveR=false;break;
+    case'KeyQ': moveDown=false;break;
+    case'KeyE': moveUp=false;break;
+    case'ShiftLeft':case'ShiftRight': camSpeed=8;break;
+  }
+}
+function onWheel(e){
+  if(currentMode==='orbit'){
+    orbitR=Math.max(8,Math.min(80,orbitR+e.deltaY*0.05));
+    e.preventDefault();
+  }else if(currentMode==='overview'){
+    camera.position.y=Math.max(10,Math.min(80,camera.position.y+e.deltaY*0.05));
+    e.preventDefault();
+  }
+}
+function onResize(){
+  if(!renderer||!camera) return;
+  renderer.setSize(window.innerWidth,window.innerHeight);
+  camera.aspect=window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+}
+ 
+// ─── MODE TOGGLE ────────────────────────────────────────────
+function setMode(mode){
+  currentMode=mode;
+  ['explore','orbit','overview'].forEach(m=>{
+    document.getElementById('btn-'+m).classList.toggle('active',m===mode);
+  });
+  const ctxt=document.getElementById('control-text');
+  if(mode==='explore'){
+    ctxt.innerHTML='<span>Klik</span> = Lock & Jelajahi<br><span>WASD / ↑↓←→</span> = Bergerak<br><span>Mouse</span> = Lihat sekeliling<br><span>Shift</span> = Berlari<br><span>ESC</span> = Lepas kursor';
+    document.getElementById('crosshair').style.display='none';
+  }else if(mode==='orbit'){
+    ctxt.innerHTML='<span>Drag Mouse</span> = Putar tampilan<br><span>Scroll</span> = Zoom in/out<br><span>WASD</span> = Geser target';
+    if(isPointerLocked) document.exitPointerLock();
+  }else{
+    ctxt.innerHTML='<span>Scroll</span> = Ketinggian<br><span>WASD</span> = Pan<br>Tampilan burung';
+    if(isPointerLocked) document.exitPointerLock();
+    camera.position.set(0,40,0);
+    camera.lookAt(0,0,0);
+  }
+}
+ 
+// ─── ANIMATE ────────────────────────────────────────────────
+function animate(){
+  animFrameId=requestAnimationFrame(animate);
+  delta=Math.min(clock.getDelta(),0.05);
+  const t=clock.elapsedTime;
+ 
+  if(currentMode==='explore'){
+    updateExploreCamera(delta);
+    detectRoom();
+  }else if(currentMode==='orbit'){
+    updateOrbitCamera(delta);
+  }else{
+    updateOverviewCamera(delta);
+  }
+ 
+  // Animate art pieces
+  artPieces.forEach(ap=>{
+    if(!ap.mesh) return;
+    const ph=ap.phase, sp=ap.speed||1;
+    if(ap.float){
+      ap.mesh.position.y=ap.baseY+Math.sin(t*sp+ph)*0.15;
+    }
+    if(ap.orbit){
+      const newAng=ap.orbitAngle+t*0.4;
+      ap.mesh.position.x=Math.cos(newAng)*ap.orbitR;
+      ap.mesh.position.y=ap.orbitCY+Math.sin(newAng*2)*0.6;
+      ap.mesh.position.z=Math.sin(newAng)*ap.orbitR;
+      ap.mesh.rotation.x+=delta*0.5;
+      ap.mesh.rotation.y+=delta*0.3;
+    }
+    if(ap.ripple){
+      ap.mesh.scale.setScalar(1+Math.sin(t*sp*0.5+ph)*0.05);
+    }
+    if(ap.scale){
+      ap.mesh.scale.setScalar(1+Math.sin(t*0.5)*0.03);
+      ap.mesh.rotation.y+=delta*0.2;
+    }
+  });
+ 
+  drawMinimap();
   renderer.render(scene, camera);
 }
-animate();
-
-// ─────────────────────────────────────────────
-//  RESIZE
-// ─────────────────────────────────────────────
-window.addEventListener('resize', () => {
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-});
-
-// ─────────────────────────────────────────────
-//  INTRO FLOW
-// ─────────────────────────────────────────────
-setTimeout(() => {
-  document.getElementById('loader').classList.add('hidden');
-}, 1400);
-
-document.getElementById('intro').addEventListener('click', () => {
-  document.getElementById('intro').classList.add('hidden');
-  document.getElementById('topbar').classList.add('visible');
-  document.getElementById('legend').classList.add('visible');
-  document.getElementById('controls').classList.add('visible');
-  // Cinematic fly-in
-  targetTheta = 0.3; targetPhi = 0.55; targetR = 36;
-});
+ 
+function updateExploreCamera(dt){
+  const speed=camSpeed*dt;
+  const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw));
+  const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));
+ 
+  if(moveF) camera.position.addScaledVector(forward,speed);
+  if(moveB) camera.position.addScaledVector(forward,-speed);
+  if(moveL) camera.position.addScaledVector(right,-speed);
+  if(moveR) camera.position.addScaledVector(right,speed);
+  if(moveUp) camera.position.y=Math.min(6.5,camera.position.y+speed);
+  if(moveDown) camera.position.y=Math.max(1.5,camera.position.y-speed);
+ 
+  // Boundary clamp
+  camera.position.x=Math.max(-19.5,Math.min(19.5,camera.position.x));
+  camera.position.z=Math.max(-16.5,Math.min(16.5,camera.position.z));
+  camera.position.y=Math.max(1.5,Math.min(6.5,camera.position.y));
+ 
+  // Apply rotation
+  const euler=new THREE.Euler(pitch,yaw,0,'YXZ');
+  camera.quaternion.setFromEuler(euler);
+}
+ 
+function updateOrbitCamera(dt){
+  if(moveF) orbitTarget.z-=dt*5;
+  if(moveB) orbitTarget.z+=dt*5;
+  if(moveL) orbitTarget.x-=dt*5;
+  if(moveR) orbitTarget.x+=dt*5;
+  orbitTarget.x=Math.max(-18,Math.min(18,orbitTarget.x));
+  orbitTarget.z=Math.max(-15,Math.min(15,orbitTarget.z));
+ 
+  camera.position.x=orbitTarget.x+orbitR*Math.sin(orbitPhi)*Math.cos(orbitTheta);
+  camera.position.y=orbitTarget.y+orbitR*Math.cos(orbitPhi);
+  camera.position.z=orbitTarget.z+orbitR*Math.sin(orbitPhi)*Math.sin(orbitTheta);
+  camera.lookAt(orbitTarget);
+}
+ 
+function updateOverviewCamera(dt){
+  if(moveF) camera.position.z-=dt*10;
+  if(moveB) camera.position.z+=dt*10;
+  if(moveL) camera.position.x-=dt*10;
+  if(moveR) camera.position.x+=dt*10;
+  camera.position.x=Math.max(-20,Math.min(20,camera.position.x));
+  camera.position.z=Math.max(-17,Math.min(17,camera.position.z));
+  camera.lookAt(camera.position.x,0,camera.position.z);
+}
+ 
+// ─── START ──────────────────────────────────────────────────
+window.addEventListener('load', init);
 </script>
 </body>
 </html>
+ 
